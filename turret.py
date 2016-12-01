@@ -220,9 +220,15 @@ class Turret(object):
                         break
 
                     elif ch == "a":
-                        Turret.move_forward(self.sm_x, 5)
+                        if MOTOR_X_REVERSED:
+                            Turret.move_backward(self.sm_x, 5)
+                        else:
+                            Turret.move_forward(self.sm_x, 5)
                     elif ch == "d":
-                        Turret.move_backward(self.sm_x, 5)
+                        if MOTOR_X_REVERSED:
+                            Turret.move_forward(self.sm_x, 5)
+                        else:
+                            Turret.move_backward(self.sm_x, 5)
                     elif ch == "\n":
                         break
 
@@ -243,9 +249,15 @@ class Turret(object):
                         break
 
                     if ch == "w":
-                        Turret.move_backward(self.sm_y, 5)
+                        if MOTOR_Y_REVERSED:
+                            Turret.move_forward(self.sm_y, 5)
+                        else:
+                            Turret.move_backward(self.sm_y, 5)
                     elif ch == "s":
-                        Turret.move_forward(self.sm_y, 5)
+                        if MOTOR_Y_REVERSED:
+                            Turret.move_backward(self.sm_y, 5)
+                        else:
+                            Turret.move_forward(self.sm_y, 5)
                     elif ch == "\n":
                         break
 
@@ -278,18 +290,30 @@ class Turret(object):
         # move x
         if (target_steps_x - self.current_x_steps) > 0:
             self.current_x_steps += 1
-            t_x = threading.Thread(target=Turret.move_backward, args=(self.sm_x, 2,))
+            if MOTOR_X_REVERSED:
+                t_x = threading.Thread(target=Turret.move_forward, args=(self.sm_x, 2,))
+            else:
+                t_x = threading.Thread(target=Turret.move_backward, args=(self.sm_x, 2,))
         elif (target_steps_x - self.current_x_steps) < 0:
             self.current_x_steps -= 1
-            t_x = threading.Thread(target=Turret.move_forward, args=(self.sm_x, 2,))
+            if MOTOR_X_REVERSED:
+                t_x = threading.Thread(target=Turret.move_backward, args=(self.sm_x, 2,))
+            else:
+                t_x = threading.Thread(target=Turret.move_forward, args=(self.sm_x, 2,))
 
         # move y
         if (target_steps_y - self.current_y_steps) > 0:
             self.current_y_steps += 1
-            t_y = threading.Thread(target=Turret.move_forward, args=(self.sm_y, 2,))
+            if MOTOR_Y_REVERSED:
+                t_y = threading.Thread(target=Turret.move_backward, args=(self.sm_y, 2,))
+            else:
+                t_y = threading.Thread(target=Turret.move_forward, args=(self.sm_y, 2,))
         elif (target_steps_y - self.current_y_steps) < 0:
             self.current_y_steps -= 1
-            t_y = threading.Thread(target=Turret.move_backward, args=(self.sm_y, 2,))
+            if MOTOR_Y_REVERSED:
+                t_y = threading.Thread(target=Turret.move_forward, args=(self.sm_y, 2,))
+            else:
+                t_y = threading.Thread(target=Turret.move_backward, args=(self.sm_y, 2,))
 
         # fire if necessary
         if not self.friendly_mode:
@@ -322,13 +346,25 @@ class Turret(object):
                         break
 
                     if ch == "w":
-                        Turret.move_backward(self.sm_y, 5)
+                        if MOTOR_Y_REVERSED:
+                            Turret.move_forward(self.sm_y, 5)
+                        else:
+                            Turret.move_backward(self.sm_y, 5)
                     elif ch == "s":
-                        Turret.move_forward(self.sm_y, 5)
+                        if MOTOR_Y_REVERSED:
+                            Turret.move_backward(self.sm_y, 5)
+                        else:
+                            Turret.move_forward(self.sm_y, 5)
                     elif ch == "a":
-                        Turret.move_forward(self.sm_x, 5)
+                        if MOTOR_X_REVERSED:
+                            Turret.move_backward(self.sm_x, 5)
+                        else:
+                            Turret.move_forward(self.sm_x, 5)
                     elif ch == "d":
-                        Turret.move_backward(self.sm_x, 5)
+                        if MOTOR_X_REVERSED:
+                            Turret.move_forward(self.sm_x, 5)
+                        else:
+                            Turret.move_backward(self.sm_x, 5)
                     elif ch == "\n":
                         Turret.fire()
 
