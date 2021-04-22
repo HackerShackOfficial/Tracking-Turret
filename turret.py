@@ -26,6 +26,11 @@ MAX_STEPS_Y = 15
 
 RELAY_PIN = 22
 
+MICRO_X_POS	= -35
+MICRO_Y_POS = -20
+MICRO_X_PIN = ######### TODO
+MICRO_Y_PIN = ######### TODO
+
 #######################
 
 
@@ -191,79 +196,30 @@ class Turret(object):
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(RELAY_PIN, GPIO.OUT)
         GPIO.output(RELAY_PIN, GPIO.LOW)
+        GPIO.setup(MICRO_X_PIN, GPIO.IN)
+        GPIO.setup(MICRO_Y_PIN, GPIO.IN)
 
     def calibrate(self):
-        """
-        Waits for input to calibrate the turret's axis
-        :return:
-        """
-        print "Please calibrate the tilt of the gun so that it is level. Commands: (w) moves up, " \
-              "(s) moves down. Press (enter) to finish.\n"
-        self.__calibrate_y_axis()
-
-        print "Please calibrate the yaw of the gun so that it aligns with the camera. Commands: (a) moves left, " \
-              "(d) moves right. Press (enter) to finish.\n"
-        self.__calibrate_x_axis()
-
-        print "Calibration finished."
-
-    def __calibrate_x_axis(self):
-        """
-        Waits for input to calibrate the x axis
-        :return:
-        """
-        with raw_mode(sys.stdin):
-            try:
-                while True:
-                    ch = sys.stdin.read(1)
-                    if not ch:
-                        break
-
-                    elif ch == "a":
-                        if MOTOR_X_REVERSED:
-                            Turret.move_backward(self.sm_x, 5)
-                        else:
-                            Turret.move_forward(self.sm_x, 5)
-                    elif ch == "d":
-                        if MOTOR_X_REVERSED:
-                            Turret.move_forward(self.sm_x, 5)
-                        else:
-                            Turret.move_backward(self.sm_x, 5)
-                    elif ch == "\n":
-                        break
-
-            except (KeyboardInterrupt, EOFError):
-                print "Error: Unable to calibrate turret. Exiting..."
-                sys.exit(1)
-
-    def __calibrate_y_axis(self):
-        """
-        Waits for input to calibrate the y axis.
-        :return:
-        """
-        with raw_mode(sys.stdin):
-            try:
-                while True:
-                    ch = sys.stdin.read(1)
-                    if not ch:
-                        break
-
-                    if ch == "w":
-                        if MOTOR_Y_REVERSED:
-                            Turret.move_forward(self.sm_y, 5)
-                        else:
-                            Turret.move_backward(self.sm_y, 5)
-                    elif ch == "s":
-                        if MOTOR_Y_REVERSED:
-                            Turret.move_backward(self.sm_y, 5)
-                        else:
-                            Turret.move_forward(self.sm_y, 5)
-                    elif ch == "\n":
-                        break
-
-            except (KeyboardInterrupt, EOFError):
-                print "Error: Unable to calibrate turret. Exiting..."
-                sys.exit(1)
+		print("Calibrating...")
+		
+		micro_x_found = False
+		micro_y_found = False
+		while not micro_x_found or not micro_y_found:
+			# this can be replaced later with multithreaded operation to make it quicker.
+			if not micro_x_found:
+				self.move_x(-2)
+				if GPIO.input(MICRO_X_PIN):
+					micro_x_found = True
+					print("X switch found")
+			if not micro_x_found:
+				self.move_y(-2)
+				if GPIO.input(MICRO_Y_PIN):
+					micro_y_found = True
+					print("Y switch found")
+        self.current_x_steps = MICRO_X_POS
+        self.current_y_steps = MICRO_Y_POS
+		# Post calibration the gun remains in microswitch position until motion is detected.
+		# This can be fixed later, but better done once better threading is established.
 
     def motion_detection(self, show_video=False):
         """
@@ -278,7 +234,7 @@ class Turret(object):
 
         # find height
         target_steps_x = (2*MAX_STEPS_X * (x + w / 2) / v_w) - MAX_STEPS_X
-        target_steps_y = (2*MAX_STEPS_Y*(y+h/2) / v_h) - MAX_STEPS_Y
+        target_steps_y = (2*MAX_STEPS_Y * (y + h / 2) / v_h) - MAX_STEPS_Y
 
         print "x: %s, y: %s" % (str(target_steps_x), str(target_steps_y))
         print "current x: %s, current y: %s" % (str(self.current_x_steps), str(self.current_y_steps))
@@ -290,30 +246,18 @@ class Turret(object):
         # move x
         if (target_steps_x - self.current_x_steps) > 0:
             self.current_x_steps += 1
-            if MOTOR_X_REVERSED:
-                t_x = threading.Thread(target=Turret.move_forward, args=(self.sm_x, 2,))
-            else:
-                t_x = threading.Thread(target=Turret.move_backward, args=(self.sm_x, 2,))
+            t_x = threading.Thread(target=self.move_x, args=(2,))
         elif (target_steps_x - self.current_x_steps) < 0:
             self.current_x_steps -= 1
-            if MOTOR_X_REVERSED:
-                t_x = threading.Thread(target=Turret.move_backward, args=(self.sm_x, 2,))
-            else:
-                t_x = threading.Thread(target=Turret.move_forward, args=(self.sm_x, 2,))
+            t_x = threading.Thread(target=self.move_x, args=(-2,))
 
         # move y
         if (target_steps_y - self.current_y_steps) > 0:
             self.current_y_steps += 1
-            if MOTOR_Y_REVERSED:
-                t_y = threading.Thread(target=Turret.move_backward, args=(self.sm_y, 2,))
-            else:
-                t_y = threading.Thread(target=Turret.move_forward, args=(self.sm_y, 2,))
+            t_x = threading.Thread(target=self.move_y, args=(2,))
         elif (target_steps_y - self.current_y_steps) < 0:
             self.current_y_steps -= 1
-            if MOTOR_Y_REVERSED:
-                t_y = threading.Thread(target=Turret.move_forward, args=(self.sm_y, 2,))
-            else:
-                t_y = threading.Thread(target=Turret.move_backward, args=(self.sm_y, 2,))
+            t_x = threading.Thread(target=self.move_y, args=(-2,))
 
         # fire if necessary
         if not self.friendly_mode:
@@ -328,74 +272,27 @@ class Turret(object):
         t_y.join()
         t_fire.join()
 
-    def interactive(self):
-        """
-        Starts an interactive session. Key presses determine movement.
-        :return:
-        """
-
-        Turret.move_forward(self.sm_x, 1)
-        Turret.move_forward(self.sm_y, 1)
-
-        print 'Commands: Pivot with (a) and (d). Tilt with (w) and (s). Exit with (q)\n'
-        with raw_mode(sys.stdin):
-            try:
-                while True:
-                    ch = sys.stdin.read(1)
-                    if not ch or ch == "q":
-                        break
-
-                    if ch == "w":
-                        if MOTOR_Y_REVERSED:
-                            Turret.move_forward(self.sm_y, 5)
-                        else:
-                            Turret.move_backward(self.sm_y, 5)
-                    elif ch == "s":
-                        if MOTOR_Y_REVERSED:
-                            Turret.move_backward(self.sm_y, 5)
-                        else:
-                            Turret.move_forward(self.sm_y, 5)
-                    elif ch == "a":
-                        if MOTOR_X_REVERSED:
-                            Turret.move_backward(self.sm_x, 5)
-                        else:
-                            Turret.move_forward(self.sm_x, 5)
-                    elif ch == "d":
-                        if MOTOR_X_REVERSED:
-                            Turret.move_forward(self.sm_x, 5)
-                        else:
-                            Turret.move_backward(self.sm_x, 5)
-                    elif ch == "\n":
-                        Turret.fire()
-
-            except (KeyboardInterrupt, EOFError):
-                pass
-
     @staticmethod
     def fire():
         GPIO.output(RELAY_PIN, GPIO.HIGH)
         time.sleep(1)
         GPIO.output(RELAY_PIN, GPIO.LOW)
 
+	def move_x(self, steps):
+		Turret.move(self.sm_x, -steps if MOTOR_X_REVERSED else steps)
+		
+	def move_y(self, steps):
+		Turret.move(self.sm_x, -steps if MOTOR_Y_REVERSED else steps)
+
     @staticmethod
-    def move_forward(motor, steps):
+    def move(motor, steps):
         """
         Moves the stepper motor forward the specified number of steps.
         :param motor:
         :param steps:
         :return:
         """
-        motor.step(steps, Adafruit_MotorHAT.FORWARD,  Adafruit_MotorHAT.INTERLEAVE)
-
-    @staticmethod
-    def move_backward(motor, steps):
-        """
-        Moves the stepper motor backward the specified number of steps
-        :param motor:
-        :param steps:
-        :return:
-        """
-        motor.step(steps, Adafruit_MotorHAT.BACKWARD, Adafruit_MotorHAT.INTERLEAVE)
+        motor.step(abs(steps), Adafruit_MotorHAT.FORWARD if steps > 0 else Adafruit_MotorHAT.BACKWARD, Adafruit_MotorHAT.INTERLEAVE)
 
     def __turn_off_motors(self):
         """
@@ -412,15 +309,5 @@ if __name__ == "__main__":
 
     user_input = raw_input("Choose an input mode: (1) Motion Detection, (2) Interactive\n")
 
-    if user_input == "1":
-        t.calibrate()
-        if raw_input("Live video? (y, n)\n").lower() == "y":
-            t.motion_detection(show_video=True)
-        else:
-            t.motion_detection()
-    elif user_input == "2":
-        if raw_input("Live video? (y, n)\n").lower() == "y":
-            thread.start_new_thread(VideoUtils.live_video, ())
-        t.interactive()
-    else:
-        print "Unknown input mode. Please choose a number (1) or (2)"
+    t.calibrate()
+    t.motion_detection(show_video=False)
