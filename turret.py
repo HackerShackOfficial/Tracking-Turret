@@ -33,9 +33,8 @@ MICRO_Y_PIN = ######### TODO
 #######################
 
 class VideoUtils(object):
-
     @staticmethod
-    def find_motion(callback, camera_port=0, show_video=False):
+    def find_motion(callback_motion, callback_nomotion, camera_port=0, show_video=False):
 
         camera = cv2.VideoCapture(camera_port)
         time.sleep(0.25)
@@ -93,12 +92,14 @@ class VideoUtils(object):
             thresh = cv2.dilate(thresh, None, iterations=2)
             c = VideoUtils.get_best_contour(thresh.copy(), 5000)
 
-            if c is not None:
+            if c is None:
+				callback_nomotion(frame)
+			else:
                 # compute the bounding box for the contour, draw it on the frame,
                 # and update the text
                 (x, y, w, h) = cv2.boundingRect(c)
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                callback(c, frame)
+                callback_motion(c, frame)
 
             # show the frame and record if the user presses a key
             if show_video:
@@ -181,6 +182,7 @@ class Gun(object):
 		self.y = stepper_y
 		self.relay = relay
 		self.friendly = friendly
+		self.fire_on_target = False
         GPIO.setup(relay, GPIO.OUT)
         GPIO.output(relay, GPIO.LOW)
 		self.end = False
@@ -192,10 +194,13 @@ class Gun(object):
 	
 	def set_friendly(self, friendly):
 		self.friendly = friendly
+		
+	def set_fire_on_target(self, fire_on_target):
+		self.fire_on_target = fire_on_target
 	
 	def __loop(self):
 		while not self.end:
-			fire = not friendly and self.x.on_target() and self.y.on_target():
+			fire = not self.friendly and self.fire_on_target and self.x.on_target() and self.y.on_target():
 			GPIO.output(self.relay, GPIO.HIGH if fire else GPIO.LOW)
 			time.sleep(1)
 			
@@ -232,9 +237,9 @@ class Turret(object):
 		self.stepper_x.start_loop()
 		self.stepper_y.start_loop()
 		self.gun.start_loop()
-        VideoUtils.find_motion(self.__move_axis, show_video=show_video)
+        VideoUtils.find_motion(self.__on_motion, self.__on_no_motion, show_video=show_video)
 
-    def __move_axis(self, contour, frame):
+    def __on_motion(self, contour, frame):
         (v_h, v_w) = frame.shape[:2]
         (x, y, w, h) = cv2.boundingRect(contour)
 
@@ -247,6 +252,12 @@ class Turret(object):
 
 		self.stepper_x.set_target(target_steps_x)
 		self.stepper_y.set_target(target_steps_y)
+		self.gun.set_fire_on_target(True)
+		
+	def __on_no_motion(self, frame):
+		self.stepper_x.set_target(0)
+		self.stepper_y.set_target(0)
+		self.gun.set_fire_on_target(False)
 
     def __turn_off_motors(self):
         """
