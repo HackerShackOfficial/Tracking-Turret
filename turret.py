@@ -15,7 +15,6 @@ import imutils
 import RPi.GPIO as GPIO
 from Adafruit_MotorHAT import Adafruit_MotorHAT, Adafruit_DCMotor, Adafruit_StepperMotor
 
-
 ### User Parameters ###
 
 MOTOR_X_REVERSED = False
@@ -33,51 +32,7 @@ MICRO_Y_PIN = ######### TODO
 
 #######################
 
-
-@contextlib.contextmanager
-def raw_mode(file):
-    """
-    Magic function that allows key presses.
-    :param file:
-    :return:
-    """
-    old_attrs = termios.tcgetattr(file.fileno())
-    new_attrs = old_attrs[:]
-    new_attrs[3] = new_attrs[3] & ~(termios.ECHO | termios.ICANON)
-    try:
-        termios.tcsetattr(file.fileno(), termios.TCSADRAIN, new_attrs)
-        yield
-    finally:
-        termios.tcsetattr(file.fileno(), termios.TCSADRAIN, old_attrs)
-
-
 class VideoUtils(object):
-    """
-    Helper functions for video utilities.
-    """
-    @staticmethod
-    def live_video(camera_port=0):
-        """
-        Opens a window with live video.
-        :param camera:
-        :return:
-        """
-
-        video_capture = cv2.VideoCapture(camera_port)
-
-        while True:
-            # Capture frame-by-frame
-            ret, frame = video_capture.read()
-
-            # Display the resulting frame
-            cv2.imshow('Video', frame)
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
-        # When everything is done, release the capture
-        video_capture.release()
-        cv2.destroyAllWindows()
 
     @staticmethod
     def find_motion(callback, camera_port=0, show_video=False):
@@ -109,7 +64,7 @@ class VideoUtils(object):
 
             # if the first frame is None, initialize it
             if firstFrame is None:
-                print "Waiting for video to adjust..."
+                print ("Waiting for video to adjust...")
                 if tempFrame is None:
                     tempFrame = gray
                     continue
@@ -119,7 +74,7 @@ class VideoUtils(object):
                     tst = cv2.threshold(delta, 5, 255, cv2.THRESH_BINARY)[1]
                     tst = cv2.dilate(tst, None, iterations=2)
                     if count > 30:
-                        print "Done.\n Waiting for motion."
+                        print ("Done.\n Waiting for motion.")
                         if not cv2.countNonZero(tst) > 0:
                             firstFrame = gray
                         else:
@@ -170,11 +125,86 @@ class VideoUtils(object):
                 best_cnt = cnt
         return best_cnt
 
+class Stepper(object):
+	def __init__(self, hat, i_motor, reversed):
+		self.motor = hat.getStepper(200, i_motor)
+		self.motor.setSpeed(5)
+		self.pos = 0
+		self.reversed = reversed
+		self.target = 0
+		self.flag = threading.Event()
+		self.end = False
+		self.thread = threading.Thread(self.__loop)
+        atexit.register(self.__end)
+		
+	def start_loop(self):
+		self.thread.start()
+		
+	def set_target(self, target):
+		self.target = target
+		self.flag.set()
+		
+	def on_target(self):
+		return abs(self.target - self.pos) < 2
+		
+	def __loop(self):
+		while not self.end:
+			if (self.target == self.pos):
+				# If at target pause thread for target change
+				self.flag.wait()
+			else:
+				self.step(2 if self.target - self.pos < 0 else -2)
+				
+	def __step(self, steps):
+		self.pos += steps
+		if self.reversed:
+			steps = -steps
+		self.motor.step(abs(steps), Adafruit_MotorHAT.FORWARD if steps > 0 else Adafruit_MotorHAT.BACKWARD, Adafruit_MotorHAT.INTERLEAVE)
+		
+	def calibrate(self, micro_pin, micro_pos):
+		return threading.Thread(self.__calibrate_run, args=(micro_pin, micro_pos))
+		
+	def __calibrate_run(self, micro_pin, micro_pos):
+        GPIO.setup(micro_pin, GPIO.IN)
+		while not GPIO.input(micro_pin):
+			self.__step(-1)
+		self.pos = micro_pos
+		
+	def __end(self):
+		self.end = True
+		self.flag.set()
+		self.thread.join()
+
+class Gun(object):
+	def __init__(self, relay, stepper_x, stepper_y, friendly):
+		self.x = stepper_x
+		self.y = stepper_y
+		self.relay = relay
+		self.friendly = friendly
+        GPIO.setup(relay, GPIO.OUT)
+        GPIO.output(relay, GPIO.LOW)
+		self.end = False
+		self.thread = threading.Thread(self.__loop)
+        atexit.register(self.__end)
+		
+	def start_loop(self):
+		self.thread.start()
+	
+	def set_friendly(self, friendly):
+		self.friendly = friendly
+	
+	def __loop(self):
+		while not self.end:
+			fire = not friendly and self.x.on_target() and self.y.on_target():
+			GPIO.output(self.relay, GPIO.HIGH if fire else GPIO.LOW)
+			time.sleep(1)
+			
+	def __end(self):
+		self.end = True
+		self.thread.join()
+		GPIO.output(self.relay, GPIO.LOW)
 
 class Turret(object):
-    """
-    Class used for turret control.
-    """
     def __init__(self, friendly_mode=True):
         self.friendly_mode = friendly_mode
 
@@ -182,50 +212,26 @@ class Turret(object):
         self.mh = Adafruit_MotorHAT()
         atexit.register(self.__turn_off_motors)
 
-        # Stepper motor 1
-        self.sm_x = self.mh.getStepper(200, 1)      # 200 steps/rev, motor port #1
-        self.sm_x.setSpeed(5)                       # 5 RPM
-        self.current_x_steps = 0
-
-        # Stepper motor 2
-        self.sm_y = self.mh.getStepper(200, 2)      # 200 steps/rev, motor port #2
-        self.sm_y.setSpeed(5)                       # 5 RPM
-        self.current_y_steps = 0
-
-        # Relay
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(RELAY_PIN, GPIO.OUT)
-        GPIO.output(RELAY_PIN, GPIO.LOW)
-        GPIO.setup(MICRO_X_PIN, GPIO.IN)
-        GPIO.setup(MICRO_Y_PIN, GPIO.IN)
+		self.stepper_x = Stepper(self.mh, 1, MOTOR_X_REVERSED)
+		self.stepper_y = Stepper(self.mh, 2, MOTOR_Y_REVERSED)
+		self.gun = Gun(RELAY_PIN, self.stepper_x, self.stepper_y, friendly_mode)
 
     def calibrate(self):
 		print("Calibrating...")
-		
-		micro_x_found = False
-		micro_y_found = False
-		while not micro_x_found or not micro_y_found:
-			# this can be replaced later with multithreaded operation to make it quicker.
-			if not micro_x_found:
-				self.move_x(-2)
-				if GPIO.input(MICRO_X_PIN):
-					micro_x_found = True
-					print("X switch found")
-			if not micro_x_found:
-				self.move_y(-2)
-				if GPIO.input(MICRO_Y_PIN):
-					micro_y_found = True
-					print("Y switch found")
-        self.current_x_steps = MICRO_X_POS
-        self.current_y_steps = MICRO_Y_POS
-		# Post calibration the gun remains in microswitch position until motion is detected.
-		# This can be fixed later, but better done once better threading is established.
+		t_x = self.stepper_x.calibrate(MICRO_X_PIN, MICRO_X_POS)
+		t_y = self.stepper_y.calibrate(MICRO_Y_PIN, MICRO_Y_POS)
+		t_x.join()
+		t_y.join()
 
     def motion_detection(self, show_video=False):
         """
         Uses the camera to move the turret. OpenCV ust be configured to use this.
         :return:
         """
+		self.stepper_x.start_loop()
+		self.stepper_y.start_loop()
+		self.gun.start_loop()
         VideoUtils.find_motion(self.__move_axis, show_video=show_video)
 
     def __move_axis(self, contour, frame):
@@ -236,63 +242,11 @@ class Turret(object):
         target_steps_x = (2*MAX_STEPS_X * (x + w / 2) / v_w) - MAX_STEPS_X
         target_steps_y = (2*MAX_STEPS_Y * (y + h / 2) / v_h) - MAX_STEPS_Y
 
-        print "x: %s, y: %s" % (str(target_steps_x), str(target_steps_y))
-        print "current x: %s, current y: %s" % (str(self.current_x_steps), str(self.current_y_steps))
+        print ("x: %s, y: %s" % (str(target_steps_x), str(target_steps_y)))
+        print ("current x: %s, current y: %s" % (str(self.stepper_x.pos), str(self.stepper_y.pos`)))
 
-        t_x = threading.Thread()
-        t_y = threading.Thread()
-        t_fire = threading.Thread()
-
-        # move x
-        if (target_steps_x - self.current_x_steps) > 0:
-            self.current_x_steps += 1
-            t_x = threading.Thread(target=self.move_x, args=(2,))
-        elif (target_steps_x - self.current_x_steps) < 0:
-            self.current_x_steps -= 1
-            t_x = threading.Thread(target=self.move_x, args=(-2,))
-
-        # move y
-        if (target_steps_y - self.current_y_steps) > 0:
-            self.current_y_steps += 1
-            t_x = threading.Thread(target=self.move_y, args=(2,))
-        elif (target_steps_y - self.current_y_steps) < 0:
-            self.current_y_steps -= 1
-            t_x = threading.Thread(target=self.move_y, args=(-2,))
-
-        # fire if necessary
-        if not self.friendly_mode:
-            if abs(target_steps_y - self.current_y_steps) <= 2 and abs(target_steps_x - self.current_x_steps) <= 2:
-                t_fire = threading.Thread(target=Turret.fire)
-
-        t_x.start()
-        t_y.start()
-        t_fire.start()
-
-        t_x.join()
-        t_y.join()
-        t_fire.join()
-
-    @staticmethod
-    def fire():
-        GPIO.output(RELAY_PIN, GPIO.HIGH)
-        time.sleep(1)
-        GPIO.output(RELAY_PIN, GPIO.LOW)
-
-	def move_x(self, steps):
-		Turret.move(self.sm_x, -steps if MOTOR_X_REVERSED else steps)
-		
-	def move_y(self, steps):
-		Turret.move(self.sm_x, -steps if MOTOR_Y_REVERSED else steps)
-
-    @staticmethod
-    def move(motor, steps):
-        """
-        Moves the stepper motor forward the specified number of steps.
-        :param motor:
-        :param steps:
-        :return:
-        """
-        motor.step(abs(steps), Adafruit_MotorHAT.FORWARD if steps > 0 else Adafruit_MotorHAT.BACKWARD, Adafruit_MotorHAT.INTERLEAVE)
+		self.stepper_x.set_target(target_steps_x)
+		self.stepper_y.set_target(target_steps_y)
 
     def __turn_off_motors(self):
         """
@@ -306,8 +260,5 @@ class Turret(object):
 
 if __name__ == "__main__":
     t = Turret(friendly_mode=False)
-
-    user_input = raw_input("Choose an input mode: (1) Motion Detection, (2) Interactive\n")
-
     t.calibrate()
     t.motion_detection(show_video=False)
