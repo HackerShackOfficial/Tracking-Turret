@@ -1,9 +1,6 @@
-# Files
-[Raspberry Pi Imager](https://www.raspberrypi.org/documentation/installation/installing-images/)
-
 # Create SD Image
 * Insert microSD card in PC.
-* Run Raspberry Pi Imager
+* Run [Raspberry Pi Imager](https://www.raspberrypi.org/documentation/installation/installing-images/)
 * Select "Raspberry Pi OS (32-bit)"
 
 ![Imager](2021-04-26-Raspberry-Pi-with-OpenCV/imager.png)
@@ -15,13 +12,13 @@ This produces an SD card installed with Raspbian.  The SD card has a number of "
 * The "boot" drive contains the operating system.
 * The other drive is additional space on the SD card that the system can later use.
 
-![Imager](2021-04-26-Raspberry-Pi-with-OpenCV/drives.png)
+![Drives](2021-04-26-Raspberry-Pi-with-OpenCV/drives.png)
 
 # Create WiFi Files
 * Create two files on the boot drive
 	* ``ssh`` - this is a file called ``ssh`` with no content.  It's presence on the the disk will enable ssh on the first boot.
-	* ``wpa_supplicant.conf`` - this file connects 
-	
+	* ``wpa_supplicant.conf`` - this file connects
+
 	```
 	ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 	update_config=1
@@ -41,13 +38,13 @@ This produces an SD card installed with Raspbian.  The SD card has a number of "
 # Find IP address
 * From a command prompt ``ping raspberrypi``
 * Note the IP address (in this case 192.168.0.67)
-![Imager](2021-04-26-Raspberry-Pi-with-OpenCV/ping.png)
+![Ping](2021-04-26-Raspberry-Pi-with-OpenCV/ping.png)
 
 # Install and Run Putty
 * Download and install [PuTTY](https://www.chiark.greenend.org.uk/~sgtatham/putty/)
 * Run PuTTY
 * Open an SSH connection to the Pi.  (``Yes`` to the Security Alert)
-![Imager](2021-04-26-Raspberry-Pi-with-OpenCV/putty.png)
+![PuTTY](2021-04-26-Raspberry-Pi-with-OpenCV/putty.png)
 * ```login as: pi```
 * ```pi@raspberrypi's password: raspberry```
 
@@ -93,3 +90,10 @@ sudo apt-get install libatlas-base-dev
 sudo apt-get install libjasper-dev
 ```
 
+# Connect Remote Desktop
+Run "Remote Desktop Connection" from the Start menu. Username: pi, Password: raspberry
+
+# Enable Camera
+On Pi application menu, select Prefences: Raspberry Pi Configuration.
+Under "Interfaces", Enable Camera.  This will require a reboot.
+![Config](2021-04-26-Raspberry-Pi-with-OpenCV/preferences.png)
