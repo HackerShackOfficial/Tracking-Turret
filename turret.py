@@ -1,10 +1,5 @@
-try:
-    import cv2
-except Exception as e:
-    print("Warning: OpenCV not installed. To use motion detection, make sure you've properly configured OpenCV.")
-
+import cv2
 import time
-import thread
 import threading
 import atexit
 import sys
@@ -25,10 +20,10 @@ MAX_STEPS_Y = 15
 
 RELAY_PIN = 22
 
-MICRO_X_POS	= -35
+MICRO_X_POS    = -35
 MICRO_Y_POS = -20
-MICRO_X_PIN = ######### TODO
-MICRO_Y_PIN = ######### TODO
+MICRO_X_PIN = 0000000000000000000000 ######### TODO
+MICRO_Y_PIN = 0000000000000000000000 ######### TODO
 
 #######################
 
@@ -93,8 +88,8 @@ class VideoUtils(object):
             c = VideoUtils.get_best_contour(thresh.copy(), 5000)
 
             if c is None:
-				callback_nomotion(frame)
-			else:
+                callback_nomotion(frame)
+            else:
                 # compute the bounding box for the contour, draw it on the frame,
                 # and update the text
                 (x, y, w, h) = cv2.boundingRect(c)
@@ -127,87 +122,87 @@ class VideoUtils(object):
         return best_cnt
 
 class Stepper(object):
-	def __init__(self, hat, i_motor, reversed):
-		self.motor = hat.getStepper(200, i_motor)
-		self.motor.setSpeed(5)
-		self.pos = 0
-		self.reversed = reversed
-		self.target = 0
-		self.flag = threading.Event()
-		self.end = False
-		self.thread = threading.Thread(self.__loop)
+    def __init__(self, hat, i_motor, reversed):
+        self.motor = hat.getStepper(200, i_motor)
+        self.motor.setSpeed(5)
+        self.pos = 0
+        self.reversed = reversed
+        self.target = 0
+        self.flag = threading.Event()
+        self.end = False
+        self.thread = threading.Thread(self.__loop)
         atexit.register(self.__end)
-		
-	def start_loop(self):
-		self.thread.start()
-		
-	def set_target(self, target):
-		self.target = target
-		self.flag.set()
-		
-	def on_target(self):
-		return abs(self.target - self.pos) < 2
-		
-	def __loop(self):
-		while not self.end:
-			if (self.target == self.pos):
-				# If at target pause thread for target change
-				self.flag.wait()
-			else:
-				self.step(2 if self.target - self.pos < 0 else -2)
-				
-	def __step(self, steps):
-		self.pos += steps
-		if self.reversed:
-			steps = -steps
-		self.motor.step(abs(steps), Adafruit_MotorHAT.FORWARD if steps > 0 else Adafruit_MotorHAT.BACKWARD, Adafruit_MotorHAT.INTERLEAVE)
-		
-	def calibrate(self, micro_pin, micro_pos):
-		return threading.Thread(self.__calibrate_run, args=(micro_pin, micro_pos))
-		
-	def __calibrate_run(self, micro_pin, micro_pos):
+        
+    def start_loop(self):
+        self.thread.start()
+        
+    def set_target(self, target):
+        self.target = target
+        self.flag.set()
+        
+    def on_target(self):
+        return abs(self.target - self.pos) < 2
+        
+    def __loop(self):
+        while not self.end:
+            if (self.target == self.pos):
+                # If at target pause thread for target change
+                self.flag.wait()
+            else:
+                self.step(2 if self.target - self.pos < 0 else -2)
+                
+    def __step(self, steps):
+        self.pos += steps
+        if self.reversed:
+            steps = -steps
+        self.motor.step(abs(steps), Adafruit_MotorHAT.FORWARD if steps > 0 else Adafruit_MotorHAT.BACKWARD, Adafruit_MotorHAT.INTERLEAVE)
+        
+    def calibrate(self, micro_pin, micro_pos):
+        return threading.Thread(self.__calibrate_run, args=(micro_pin, micro_pos))
+        
+    def __calibrate_run(self, micro_pin, micro_pos):
         GPIO.setup(micro_pin, GPIO.IN)
-		while not GPIO.input(micro_pin):
-			self.__step(-1)
-		self.pos = micro_pos
-		
-	def __end(self):
-		self.end = True
-		self.flag.set()
-		self.thread.join()
+        while not GPIO.input(micro_pin):
+            self.__step(-1)
+        self.pos = micro_pos
+        
+    def __end(self):
+        self.end = True
+        self.flag.set()
+        self.thread.join()
 
 class Gun(object):
-	def __init__(self, relay, stepper_x, stepper_y, friendly):
-		self.x = stepper_x
-		self.y = stepper_y
-		self.relay = relay
-		self.friendly = friendly
-		self.fire_on_target = False
+    def __init__(self, relay, stepper_x, stepper_y, friendly):
+        self.x = stepper_x
+        self.y = stepper_y
+        self.relay = relay
+        self.friendly = friendly
+        self.fire_on_target = False
         GPIO.setup(relay, GPIO.OUT)
         GPIO.output(relay, GPIO.LOW)
-		self.end = False
-		self.thread = threading.Thread(self.__loop)
+        self.end = False
+        self.thread = threading.Thread(self.__loop)
         atexit.register(self.__end)
-		
-	def start_loop(self):
-		self.thread.start()
-	
-	def set_friendly(self, friendly):
-		self.friendly = friendly
-		
-	def set_fire_on_target(self, fire_on_target):
-		self.fire_on_target = fire_on_target
-	
-	def __loop(self):
-		while not self.end:
-			fire = not self.friendly and self.fire_on_target and self.x.on_target() and self.y.on_target():
-			GPIO.output(self.relay, GPIO.HIGH if fire else GPIO.LOW)
-			time.sleep(1)
-			
-	def __end(self):
-		self.end = True
-		self.thread.join()
-		GPIO.output(self.relay, GPIO.LOW)
+        
+    def start_loop(self):
+        self.thread.start()
+    
+    def set_friendly(self, friendly):
+        self.friendly = friendly
+        
+    def set_fire_on_target(self, fire_on_target):
+        self.fire_on_target = fire_on_target
+    
+    def __loop(self):
+        while not self.end:
+            fire = not self.friendly and self.fire_on_target and self.x.on_target() and self.y.on_target()
+            GPIO.output(self.relay, GPIO.HIGH if fire else GPIO.LOW)
+            time.sleep(1)
+            
+    def __end(self):
+        self.end = True
+        self.thread.join()
+        GPIO.output(self.relay, GPIO.LOW)
 
 class Turret(object):
     def __init__(self, friendly_mode=True):
@@ -218,25 +213,25 @@ class Turret(object):
         atexit.register(self.__turn_off_motors)
 
         GPIO.setmode(GPIO.BCM)
-		self.stepper_x = Stepper(self.mh, 1, MOTOR_X_REVERSED)
-		self.stepper_y = Stepper(self.mh, 2, MOTOR_Y_REVERSED)
-		self.gun = Gun(RELAY_PIN, self.stepper_x, self.stepper_y, friendly_mode)
+        self.stepper_x = Stepper(self.mh, 1, MOTOR_X_REVERSED)
+        self.stepper_y = Stepper(self.mh, 2, MOTOR_Y_REVERSED)
+        self.gun = Gun(RELAY_PIN, self.stepper_x, self.stepper_y, friendly_mode)
 
     def calibrate(self):
-		print("Calibrating...")
-		t_x = self.stepper_x.calibrate(MICRO_X_PIN, MICRO_X_POS)
-		t_y = self.stepper_y.calibrate(MICRO_Y_PIN, MICRO_Y_POS)
-		t_x.join()
-		t_y.join()
+        print("Calibrating...")
+        t_x = self.stepper_x.calibrate(MICRO_X_PIN, MICRO_X_POS)
+        t_y = self.stepper_y.calibrate(MICRO_Y_PIN, MICRO_Y_POS)
+        t_x.join()
+        t_y.join()
 
     def motion_detection(self, show_video=False):
         """
         Uses the camera to move the turret. OpenCV ust be configured to use this.
         :return:
         """
-		self.stepper_x.start_loop()
-		self.stepper_y.start_loop()
-		self.gun.start_loop()
+        self.stepper_x.start_loop()
+        self.stepper_y.start_loop()
+        self.gun.start_loop()
         VideoUtils.find_motion(self.__on_motion, self.__on_no_motion, show_video=show_video)
 
     def __on_motion(self, contour, frame):
@@ -248,16 +243,16 @@ class Turret(object):
         target_steps_y = (2*MAX_STEPS_Y * (y + h / 2) / v_h) - MAX_STEPS_Y
 
         print ("x: %s, y: %s" % (str(target_steps_x), str(target_steps_y)))
-        print ("current x: %s, current y: %s" % (str(self.stepper_x.pos), str(self.stepper_y.pos`)))
+        print ("current x: %s, current y: %s" % (str(self.stepper_x.pos), str(self.stepper_y.pos)))
 
-		self.stepper_x.set_target(target_steps_x)
-		self.stepper_y.set_target(target_steps_y)
-		self.gun.set_fire_on_target(True)
-		
-	def __on_no_motion(self, frame):
-		self.stepper_x.set_target(0)
-		self.stepper_y.set_target(0)
-		self.gun.set_fire_on_target(False)
+        self.stepper_x.set_target(target_steps_x)
+        self.stepper_y.set_target(target_steps_y)
+        self.gun.set_fire_on_target(True)
+        
+    def __on_no_motion(self, frame):
+        self.stepper_x.set_target(0)
+        self.stepper_y.set_target(0)
+        self.gun.set_fire_on_target(False)
 
     def __turn_off_motors(self):
         """
