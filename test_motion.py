@@ -7,5 +7,5 @@ def on_motion(contour, frame):
 def on_no_motion(frame):
     print(datetime.now(), "NO MOTION")
     
-motion_sensor = MotionSensor()
+motion_sensor = MotionSensor(diag=True)
 motion_sensor.find_motion(on_motion, on_no_motion, show_video=True)

@@ -27,9 +27,48 @@ MICRO_Y_PIN = 0000000000000000000000 ######### TODO
 
 #######################
 
+class FrameGrabException(Exception):
+    pass
+
 class MotionSensor(object):
-    def __init__(self, camera_port=0):
+    def __init__(self, camera_port=0, diag=False):
         self.camera = cv2.VideoCapture(camera_port)
+        self.diag = diag
+
+    def grab_image(self):
+        grabbed, frame = self.camera.read()
+        if not grabbed:
+            raise FrameGrabException()
+
+        # resize the frame, convert it to grayscale, and blur it
+        frame = imutils.resize(frame, width=500)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (21, 21), 0)
+        return frame, gray
+
+    def get_empty_frame(self):
+        frame, candidate = self.grab_image()
+        static_count = 0
+        while static_count < 50:
+            _, gray = self.grab_image()
+            delta = cv2.absdiff(candidate, gray)
+            tst = cv2.threshold(delta, 5, 255, cv2.THRESH_BINARY)[1]
+            tst = cv2.dilate(tst, None, iterations=2)
+
+            if self.diag:
+                cv2.imshow("Candidate", candidate)
+                cv2.imshow("Current", gray)
+                cv2.imshow("Delta", delta)
+
+            if cv2.countNonZero(tst) == 0:  # No motion
+                static_count += 1
+            else:
+                static_count = 0
+                candidate = gray
+            print(static_count, "similar images.")
+            time.sleep(250)
+
+        return candidate
     
     def find_motion(self, callback_motion, callback_nomotion, show_video=False):
         try:
@@ -38,22 +77,11 @@ class MotionSensor(object):
             tempFrame = None
             count = 0
 
+            emptyFrame = None
+
             # loop over the frames of the video
             while True:
-                # grab the current frame and initialize the occupied/unoccupied
-                # text
-
-                (grabbed, frame) = self.camera.read()
-
-                # if the frame could not be grabbed, then we have reached the end
-                # of the video
-                if not grabbed:
-                    break
-
-                # resize the frame, convert it to grayscale, and blur it
-                frame = imutils.resize(frame, width=500)
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                gray = cv2.GaussianBlur(gray, (21, 21), 0)
+                frame, gray = self.grab_image()
 
                 # if the first frame is None, initialize it
                 if firstFrame is None:
