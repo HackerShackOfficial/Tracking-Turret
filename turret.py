@@ -46,27 +46,37 @@ class MotionSensor(object):
         gray = cv2.GaussianBlur(gray, (21, 21), 0)
         return frame, gray
 
+    # Get initial "empty" image.
+    # Wait until there are 20 similar images with 250ms sleep between them.
+    # Similar is defined as having less than 500 non-zero delta from
+    # first image of the set (canidate), after greying, blurring.
     def get_empty_frame(self):
         frame, candidate = self.grab_image()
         static_count = 0
-        while static_count < 50:
-            _, gray = self.grab_image()
+        while static_count < 20:
+            frame, gray = self.grab_image()
             delta = cv2.absdiff(candidate, gray)
             tst = cv2.threshold(delta, 5, 255, cv2.THRESH_BINARY)[1]
             tst = cv2.dilate(tst, None, iterations=2)
 
             if self.diag:
+                cv2.imshow("Frame", frame)
                 cv2.imshow("Candidate", candidate)
                 cv2.imshow("Current", gray)
                 cv2.imshow("Delta", delta)
+                cv2.imshow("Threshold and Dilate", tst)
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord('q'):
+                    return None
 
-            if cv2.countNonZero(tst) == 0:  # No motion
+            motion_count = cv2.countNonZero(tst)
+            if motion_count < 500:  # No motion
                 static_count += 1
             else:
                 static_count = 0
                 candidate = gray
-            print(static_count, "similar images.")
-            time.sleep(250)
+            print(static_count, "similar images.", motion_count)
+            time.sleep(0.250)
 
         return candidate
     
