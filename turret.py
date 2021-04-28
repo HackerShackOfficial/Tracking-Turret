@@ -98,8 +98,10 @@ class MotionSensor(object):
                 else:
                     # compute the bounding box for the contour, draw it on the frame,
                     # and update the text
-                    (x, y, w, h) = cv2.boundingRect(c)
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                    if show_video:
+                        (x, y, w, h) = cv2.boundingRect(c)
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                        cv2.drawContours(frame, c, -1, (0, 255, 255), 1)
                     callback_motion(c, frame)
 
                 # show the frame and record if the user presses a key
