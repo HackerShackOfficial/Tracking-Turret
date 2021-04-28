@@ -81,15 +81,20 @@ class MotionSensor(object):
                 candidate = gray
             print(static_count, "similar images.", diff_count)
             time.sleep(0.250)
+        
+        cv2.destroyAllWindows()
 
         return candidate
     
     def find_motion(self, callback_motion, callback_nomotion, show_video=False):
         try:
             base = self.get_empty_frame()
+            recent = base
+            static_count = 0
 
             # loop over the frames of the video
             while True:
+                # Find contour in difference between base and current
                 frame, gray = self.grab_image()
                 diff = self.compare(base, gray)
                 c = MotionSensor.get_best_contour(diff.copy(), 5000)
@@ -97,9 +102,8 @@ class MotionSensor(object):
                 if c is None:
                     callback_nomotion(frame)
                 else:
-                    # compute the bounding box for the contour, draw it on the frame,
-                    # and update the text
                     if show_video:
+                        # Draw bounds and contour on frame
                         (x, y, w, h) = cv2.boundingRect(c)
                         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                         cv2.drawContours(frame, c, -1, (0, 255, 255), 1)
@@ -113,6 +117,22 @@ class MotionSensor(object):
                     # if the `q` key is pressed, break from the lop
                     if key == ord("q"):
                         break
+                    
+                # check for recent motion
+                diff = self.compare(recent, gray)
+                diff_count = cv2.countNonZero(diff)
+                if diff_count == 0:  # No motion
+                    static_count += 1
+                    if static_count > 40: # No motion for 40 frames
+                        # Set recent as new base
+                        base = recent
+                        recent = gray
+                        static_count = 0
+                        print("New base set")
+                else:
+                    static_count = 0   # Motion detected, try set recent to current
+                    recent = gray
+                
 
         finally:
             # cleanup the camera and close any open windows
