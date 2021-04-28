@@ -107,7 +107,7 @@ class MotionSensor(object):
                         (x, y, w, h) = cv2.boundingRect(c)
                         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                         cv2.drawContours(frame, c, -1, (0, 255, 255), 1)
-                    callback_motion(c, frame)
+                    callback_motion(((x+w/2)/frame.shape[1], (y+h/2)/frame.shape[0]), frame)
 
                 # show the frame and record if the user presses a key
                 if show_video:
@@ -266,13 +266,11 @@ class Turret(object):
         
         self.motion_sensor.find_motion(self.__on_motion, self.__on_no_motion, show_video=show_video)
 
-    def __on_motion(self, contour, frame):
-        (v_h, v_w) = frame.shape[:2]
-        (x, y, w, h) = cv2.boundingRect(contour)
+    def __on_motion(self, motion_center, frame):
 
         # find height
-        target_steps_x = (2*MAX_STEPS_X * (x + w / 2) / v_w) - MAX_STEPS_X
-        target_steps_y = (2*MAX_STEPS_Y * (y + h / 2) / v_h) - MAX_STEPS_Y
+        target_steps_x = (2*MAX_STEPS_X * motion_center[0]) - MAX_STEPS_X
+        target_steps_y = (2*MAX_STEPS_Y * motion_center[1]) - MAX_STEPS_Y
 
         print ("x: %s, y: %s" % (str(target_steps_x), str(target_steps_y)))
         print ("current x: %s, current y: %s" % (str(self.stepper_x.pos), str(self.stepper_y.pos)))

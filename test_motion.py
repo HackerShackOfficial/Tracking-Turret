@@ -1,8 +1,8 @@
 from turret import MotionSensor
 from datetime import datetime
 
-def on_motion(contour, frame):
-    print(datetime.now(), "MOTION")
+def on_motion(center, frame):
+    print(datetime.now(), "MOTION", center)
     
 def on_no_motion(frame):
     print(datetime.now(), "NO MOTION")
