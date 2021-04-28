@@ -27,13 +27,11 @@ MICRO_Y_PIN = 0000000000000000000000 ######### TODO
 
 #######################
 
-class VideoUtils(object):
-    @staticmethod
-    def find_motion(callback_motion, callback_nomotion, camera_port=0, show_video=False):
-
-        camera = cv2.VideoCapture(camera_port)
-        time.sleep(0.25)
-
+class MotionSensor(object):
+    def __init__(self, camera_port=0):
+        self.camera = cv2.VideoCapture(camera_port)
+    
+    def find_motion(self, callback_motion, callback_nomotion, show_video=False):
         try:
             # initialize the first frame in the video stream
             firstFrame = None
@@ -45,7 +43,7 @@ class VideoUtils(object):
                 # grab the current frame and initialize the occupied/unoccupied
                 # text
 
-                (grabbed, frame) = camera.read()
+                (grabbed, frame) = self.camera.read()
 
                 # if the frame could not be grabbed, then we have reached the end
                 # of the video
@@ -86,7 +84,7 @@ class VideoUtils(object):
                 # dilate the thresholded image to fill in holes, then find contours
                 # on thresholded image
                 thresh = cv2.dilate(thresh, None, iterations=2)
-                c = VideoUtils.get_best_contour(thresh.copy(), 5000)
+                c = MotionSensor.get_best_contour(thresh.copy(), 5000)
 
                 if c is None:
                     callback_nomotion(frame)
@@ -108,7 +106,7 @@ class VideoUtils(object):
 
         finally:
             # cleanup the camera and close any open windows
-            camera.release()
+            self.camera.release()
             cv2.destroyAllWindows()
 
     @staticmethod
@@ -218,6 +216,7 @@ class Turret(object):
         self.stepper_x = Stepper(self.mh, 1, MOTOR_X_REVERSED)
         self.stepper_y = Stepper(self.mh, 2, MOTOR_Y_REVERSED)
         self.gun = Gun(RELAY_PIN, self.stepper_x, self.stepper_y, friendly_mode)
+        self.motion_sensor = MotionSensor()
 
     def calibrate(self):
         print("Calibrating...")
@@ -234,7 +233,8 @@ class Turret(object):
         self.stepper_x.start_loop()
         self.stepper_y.start_loop()
         self.gun.start_loop()
-        VideoUtils.find_motion(self.__on_motion, self.__on_no_motion, show_video=show_video)
+        
+        self.motion_sensor.find_motion(self.__on_motion, self.__on_no_motion, show_video=show_video)
 
     def __on_motion(self, contour, frame):
         (v_h, v_w) = frame.shape[:2]

@@ -1,4 +1,4 @@
-from turret import VideoUtils
+from turret import MotionSensor
 from datetime import datetime
 
 def on_motion(contour, frame):
@@ -7,4 +7,5 @@ def on_motion(contour, frame):
 def on_no_motion(frame):
     print(datetime.now(), "NO MOTION")
     
-VideoUtils.find_motion(on_motion, on_no_motion, show_video=True)
+motion_sensor = MotionSensor()
+motion_sensor.find_motion(on_motion, on_no_motion, show_video=True)
