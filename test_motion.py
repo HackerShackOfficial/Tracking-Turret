@@ -9,5 +9,4 @@ def on_no_motion(frame):
     
 motion_sensor = MotionSensor(diag=True)
 
-motion_sensor.get_empty_frame()
-#motion_sensor.find_motion(on_motion, on_no_motion, show_video=True)
+motion_sensor.find_motion(on_motion, on_no_motion, show_video=True)

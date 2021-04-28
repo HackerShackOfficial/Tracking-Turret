@@ -45,84 +45,53 @@ class MotionSensor(object):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (21, 21), 0)
         return frame, gray
+    
+    def compare(self, base, current):
+        delta = cv2.absdiff(base, current)
+        tst = cv2.threshold(delta, 25, 255, cv2.THRESH_BINARY)[1]
+        return cv2.dilate(tst, None, iterations=2)
 
     # Get initial "empty" image.
     # Wait until there are 20 similar images with 250ms sleep between them.
-    # Similar is defined as having less than 500 non-zero delta from
+    # Similar is defined as having zero thresholded delta from
     # first image of the set (canidate), after greying, blurring.
     def get_empty_frame(self):
         frame, candidate = self.grab_image()
         static_count = 0
         while static_count < 20:
             frame, gray = self.grab_image()
-            delta = cv2.absdiff(candidate, gray)
-            tst = cv2.threshold(delta, 5, 255, cv2.THRESH_BINARY)[1]
-            tst = cv2.dilate(tst, None, iterations=2)
+            diff = self.compare(candidate, gray)
 
             if self.diag:
-                cv2.imshow("Frame", frame)
-                cv2.imshow("Candidate", candidate)
-                cv2.imshow("Current", gray)
-                cv2.imshow("Delta", delta)
-                cv2.imshow("Threshold and Dilate", tst)
+                #cv2.imshow("Frame", frame)
+                #cv2.imshow("Base", candidate)
+                #cv2.imshow("Current", gray)
+                #cv2.imshow("Delta", delta)
+                cv2.imshow("Threshold and Dilate", diff)
                 key = cv2.waitKey(1) & 0xFF
                 if key == ord('q'):
                     return None
 
-            motion_count = cv2.countNonZero(tst)
-            if motion_count < 500:  # No motion
+            diff_count = cv2.countNonZero(diff)
+            if diff_count == 0:  # No motion
                 static_count += 1
             else:
-                static_count = 0
+                static_count = 0   # Motion detected, try current image as base
                 candidate = gray
-            print(static_count, "similar images.", motion_count)
+            print(static_count, "similar images.", diff_count)
             time.sleep(0.250)
 
         return candidate
     
     def find_motion(self, callback_motion, callback_nomotion, show_video=False):
         try:
-            # initialize the first frame in the video stream
-            firstFrame = None
-            tempFrame = None
-            count = 0
-
-            emptyFrame = None
+            base = self.get_empty_frame()
 
             # loop over the frames of the video
             while True:
                 frame, gray = self.grab_image()
-
-                # if the first frame is None, initialize it
-                if firstFrame is None:
-                    print ("Waiting for video to adjust...")
-                    if tempFrame is None:
-                        tempFrame = gray
-                        continue
-                    else:
-                        delta = cv2.absdiff(tempFrame, gray)
-                        tempFrame = gray
-                        tst = cv2.threshold(delta, 5, 255, cv2.THRESH_BINARY)[1]
-                        tst = cv2.dilate(tst, None, iterations=2)
-                        if count > 30:
-                            print ("Done.\n Waiting for motion.")
-                            if not cv2.countNonZero(tst) > 0:
-                                firstFrame = gray
-                            else:
-                                continue
-                        else:
-                            count += 1
-                            continue
-
-                # compute the absolute difference between the current frame and
-                # first frame
-                frameDelta = cv2.absdiff(firstFrame, gray)
-                thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
-
-                # dilate the thresholded image to fill in holes, then find contours
-                # on thresholded image
-                thresh = cv2.dilate(thresh, None, iterations=2)
-                c = MotionSensor.get_best_contour(thresh.copy(), 5000)
+                diff = self.compare(base, gray)
+                c = MotionSensor.get_best_contour(diff.copy(), 5000)
 
                 if c is None:
                     callback_nomotion(frame)
@@ -135,7 +104,7 @@ class MotionSensor(object):
 
                 # show the frame and record if the user presses a key
                 if show_video:
-                    cv2.imshow("Security Feed", frame)
+                    cv2.imshow("Feed", frame)
                     key = cv2.waitKey(1) & 0xFF
 
                     # if the `q` key is pressed, break from the lop
