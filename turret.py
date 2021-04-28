@@ -8,7 +8,8 @@ import contextlib
 
 import imutils
 import RPi.GPIO as GPIO
-from Adafruit_MotorHAT import Adafruit_MotorHAT, Adafruit_DCMotor, Adafruit_StepperMotor
+from adafruit_motorkit import MotorKit
+
 
 ### User Parameters ###
 
@@ -244,7 +245,7 @@ class Turret(object):
         self.friendly_mode = friendly_mode
 
         # create a default object, no changes to I2C address or frequency
-        self.mh = Adafruit_MotorHAT()
+        self.mh = MotorKit()
         atexit.register(self.__turn_off_motors)
 
         GPIO.setmode(GPIO.BCM)
@@ -284,10 +285,10 @@ class Turret(object):
         self.gun.set_fire_on_target(False)
 
     def __turn_off_motors(self):
-        self.mh.getMotor(1).run(Adafruit_MotorHAT.RELEASE)
-        self.mh.getMotor(2).run(Adafruit_MotorHAT.RELEASE)
-        self.mh.getMotor(3).run(Adafruit_MotorHAT.RELEASE)
-        self.mh.getMotor(4).run(Adafruit_MotorHAT.RELEASE)
+        self.mh.getMotor(1).run(MotorKit.RELEASE)
+        self.mh.getMotor(2).run(MotorKit.RELEASE)
+        self.mh.getMotor(3).run(MotorKit.RELEASE)
+        self.mh.getMotor(4).run(MotorKit.RELEASE)
 
 if __name__ == "__main__":
     t = Turret(friendly_mode=False)
