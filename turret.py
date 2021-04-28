@@ -33,6 +33,9 @@ class FrameGrabException(Exception):
 class MotionSensor(object):
     def __init__(self, camera_port=0, diag=False):
         self.camera = cv2.VideoCapture(camera_port)
+        print("Camer Buffer Size:", self.camera.get(cv2.CAP_PROP_BUFFERSIZE))
+        self.camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        print("Camer Buffer Size:", self.camera.get(cv2.CAP_PROP_BUFFERSIZE))
         self.diag = diag
 
     def grab_image(self):
