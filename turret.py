@@ -1,10 +1,5 @@
-try:
-    import cv2
-except Exception as e:
-    print("Warning: OpenCV not installed. To use motion detection, make sure you've properly configured OpenCV.")
-
+import cv2
 import time
-import thread
 import threading
 import atexit
 import sys
@@ -14,7 +9,6 @@ import contextlib
 import imutils
 import RPi.GPIO as GPIO
 from Adafruit_MotorHAT import Adafruit_MotorHAT, Adafruit_DCMotor, Adafruit_StepperMotor
-
 
 ### User Parameters ###
 
@@ -26,136 +20,128 @@ MAX_STEPS_Y = 15
 
 RELAY_PIN = 22
 
+MICRO_X_POS    = -35
+MICRO_Y_POS = -20
+MICRO_X_PIN = 0000000000000000000000 ######### TODO
+MICRO_Y_PIN = 0000000000000000000000 ######### TODO
+
 #######################
 
+class FrameGrabException(Exception):
+    pass
 
-@contextlib.contextmanager
-def raw_mode(file):
-    """
-    Magic function that allows key presses.
-    :param file:
-    :return:
-    """
-    old_attrs = termios.tcgetattr(file.fileno())
-    new_attrs = old_attrs[:]
-    new_attrs[3] = new_attrs[3] & ~(termios.ECHO | termios.ICANON)
-    try:
-        termios.tcsetattr(file.fileno(), termios.TCSADRAIN, new_attrs)
-        yield
-    finally:
-        termios.tcsetattr(file.fileno(), termios.TCSADRAIN, old_attrs)
+class MotionSensor(object):
+    def __init__(self, camera_port=0, diag=False):
+        self.camera = cv2.VideoCapture(camera_port)
+        self.camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)   # Reduce Lag
+        self.diag = diag
 
+    def grab_image(self):
+        grabbed, frame = self.camera.read()
+        if not grabbed:
+            raise FrameGrabException()
 
-class VideoUtils(object):
-    """
-    Helper functions for video utilities.
-    """
-    @staticmethod
-    def live_video(camera_port=0):
-        """
-        Opens a window with live video.
-        :param camera:
-        :return:
-        """
+        # resize the frame, convert it to grayscale, and blur it
+        frame = imutils.resize(frame, width=500)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (21, 21), 0)
+        return frame, gray
+    
+    def compare(self, base, current):
+        delta = cv2.absdiff(base, current)
+        tst = cv2.threshold(delta, 25, 255, cv2.THRESH_BINARY)[1]
+        return cv2.dilate(tst, None, iterations=2)
 
-        video_capture = cv2.VideoCapture(camera_port)
+    # Get initial "empty" image.
+    # Wait until there are 20 similar images with 250ms sleep between them.
+    # Similar is defined as having zero thresholded delta from
+    # first image of the set (canidate), after greying, blurring.
+    def get_empty_frame(self):
+        frame, candidate = self.grab_image()
+        static_count = 0
+        while static_count < 20:
+            frame, gray = self.grab_image()
+            diff = self.compare(candidate, gray)
 
-        while True:
-            # Capture frame-by-frame
-            ret, frame = video_capture.read()
-
-            # Display the resulting frame
-            cv2.imshow('Video', frame)
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
-        # When everything is done, release the capture
-        video_capture.release()
-        cv2.destroyAllWindows()
-
-    @staticmethod
-    def find_motion(callback, camera_port=0, show_video=False):
-
-        camera = cv2.VideoCapture(camera_port)
-        time.sleep(0.25)
-
-        # initialize the first frame in the video stream
-        firstFrame = None
-        tempFrame = None
-        count = 0
-
-        # loop over the frames of the video
-        while True:
-            # grab the current frame and initialize the occupied/unoccupied
-            # text
-
-            (grabbed, frame) = camera.read()
-
-            # if the frame could not be grabbed, then we have reached the end
-            # of the video
-            if not grabbed:
-                break
-
-            # resize the frame, convert it to grayscale, and blur it
-            frame = imutils.resize(frame, width=500)
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            gray = cv2.GaussianBlur(gray, (21, 21), 0)
-
-            # if the first frame is None, initialize it
-            if firstFrame is None:
-                print "Waiting for video to adjust..."
-                if tempFrame is None:
-                    tempFrame = gray
-                    continue
-                else:
-                    delta = cv2.absdiff(tempFrame, gray)
-                    tempFrame = gray
-                    tst = cv2.threshold(delta, 5, 255, cv2.THRESH_BINARY)[1]
-                    tst = cv2.dilate(tst, None, iterations=2)
-                    if count > 30:
-                        print "Done.\n Waiting for motion."
-                        if not cv2.countNonZero(tst) > 0:
-                            firstFrame = gray
-                        else:
-                            continue
-                    else:
-                        count += 1
-                        continue
-
-            # compute the absolute difference between the current frame and
-            # first frame
-            frameDelta = cv2.absdiff(firstFrame, gray)
-            thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
-
-            # dilate the thresholded image to fill in holes, then find contours
-            # on thresholded image
-            thresh = cv2.dilate(thresh, None, iterations=2)
-            c = VideoUtils.get_best_contour(thresh.copy(), 5000)
-
-            if c is not None:
-                # compute the bounding box for the contour, draw it on the frame,
-                # and update the text
-                (x, y, w, h) = cv2.boundingRect(c)
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                callback(c, frame)
-
-            # show the frame and record if the user presses a key
-            if show_video:
-                cv2.imshow("Security Feed", frame)
+            if self.diag:
+                #cv2.imshow("Frame", frame)
+                #cv2.imshow("Base", candidate)
+                #cv2.imshow("Current", gray)
+                #cv2.imshow("Delta", delta)
+                cv2.imshow("Threshold and Dilate", diff)
                 key = cv2.waitKey(1) & 0xFF
+                if key == ord('q'):
+                    return None
 
-                # if the `q` key is pressed, break from the lop
-                if key == ord("q"):
-                    break
-
-        # cleanup the camera and close any open windows
-        camera.release()
+            diff_count = cv2.countNonZero(diff)
+            if diff_count == 0:  # No motion
+                static_count += 1
+            else:
+                static_count = 0   # Motion detected, try current image as base
+                candidate = gray
+            print(static_count, "similar images.", diff_count)
+            time.sleep(0.250)
+        
         cv2.destroyAllWindows()
+
+        return candidate
+    
+    def find_motion(self, callback_motion, callback_nomotion, show_video=False):
+        try:
+            base = self.get_empty_frame()
+            recent = base
+            static_count = 0
+
+            # loop over the frames of the video
+            while True:
+                # Find contour in difference between base and current
+                frame, gray = self.grab_image()
+                diff = self.compare(base, gray)
+                c = MotionSensor.get_best_contour(diff.copy(), 5000)
+
+                if c is None:
+                    callback_nomotion(frame)
+                else:
+                    if show_video:
+                        # Draw bounds and contour on frame
+                        (x, y, w, h) = cv2.boundingRect(c)
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                        cv2.drawContours(frame, c, -1, (0, 255, 255), 1)
+                    callback_motion(((x+w/2)/frame.shape[1], (y+h/2)/frame.shape[0]), frame)
+
+                # show the frame and record if the user presses a key
+                if show_video:
+                    cv2.imshow("Feed", frame)
+                    key = cv2.waitKey(1) & 0xFF
+
+                    # if the `q` key is pressed, break from the lop
+                    if key == ord("q"):
+                        break
+                    
+                # check for recent motion
+                diff = self.compare(recent, gray)
+                diff_count = cv2.countNonZero(diff)
+                if diff_count == 0:  # No motion
+                    static_count += 1
+                    if static_count > 40: # No motion for 40 frames
+                        # Set recent as new base
+                        base = recent
+                        recent = gray
+                        static_count = 0
+                        print("New base set")
+                else:
+                    static_count = 0   # Motion detected, try set recent to current
+                    recent = gray
+                
+
+        finally:
+            # cleanup the camera and close any open windows
+            self.camera.release()
+            cv2.destroyAllWindows()
 
     @staticmethod
     def get_best_contour(imgmask, threshold):
-        im, contours, hierarchy = cv2.findContours(imgmask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(imgmask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         best_area = threshold
         best_cnt = None
         for cnt in contours:
@@ -165,11 +151,90 @@ class VideoUtils(object):
                 best_cnt = cnt
         return best_cnt
 
+class Stepper(object):
+    def __init__(self, hat, i_motor, reversed):
+        self.motor = hat.getStepper(200, i_motor)
+        self.motor.setSpeed(5)
+        self.pos = 0
+        self.reversed = reversed
+        self.target = 0
+        self.flag = threading.Event()
+        self.end = False
+        self.thread = threading.Thread(self.__loop)
+        atexit.register(self.__end)
+        
+    def start_loop(self):
+        self.thread.start()
+        
+    def set_target(self, target):
+        self.target = target
+        self.flag.set()
+        
+    def on_target(self):
+        return abs(self.target - self.pos) < 2
+        
+    def __loop(self):
+        while not self.end:
+            if (self.target == self.pos):
+                # If at target pause thread for target change
+                self.flag.wait()
+            else:
+                self.step(2 if self.target - self.pos < 0 else -2)
+                
+    def __step(self, steps):
+        self.pos += steps
+        if self.reversed:
+            steps = -steps
+        self.motor.step(abs(steps), Adafruit_MotorHAT.FORWARD if steps > 0 else Adafruit_MotorHAT.BACKWARD, Adafruit_MotorHAT.INTERLEAVE)
+        
+    def calibrate(self, micro_pin, micro_pos):
+        return threading.Thread(self.__calibrate_run, args=(micro_pin, micro_pos))
+        
+    def __calibrate_run(self, micro_pin, micro_pos):
+        GPIO.setup(micro_pin, GPIO.IN)
+        while not GPIO.input(micro_pin):
+            self.__step(-1)
+        self.pos = micro_pos
+        
+    def __end(self):
+        self.end = True
+        self.flag.set()
+        self.thread.join()
+
+class Gun(object):
+    def __init__(self, relay, stepper_x, stepper_y, friendly):
+        self.x = stepper_x
+        self.y = stepper_y
+        self.relay = relay
+        self.friendly = friendly
+        self.fire_on_target = False
+        GPIO.setup(relay, GPIO.OUT)
+        GPIO.output(relay, GPIO.LOW)
+        self.end = False
+        self.thread = threading.Thread(self.__loop)
+        atexit.register(self.__end)
+        
+    def start_loop(self):
+        self.thread.start()
+    
+    def set_friendly(self, friendly):
+        self.friendly = friendly
+        
+    def set_fire_on_target(self, fire_on_target):
+        self.fire_on_target = fire_on_target
+    
+    def __loop(self):
+        while not self.end:
+            fire = not self.friendly and self.fire_on_target and self.x.on_target() and self.y.on_target()
+            GPIO.output(self.relay, GPIO.HIGH if fire else GPIO.LOW)
+            time.sleep(1)
+            
+    def __end(self):
+        self.end = True
+        self.thread.join()
+        GPIO.output(self.relay, GPIO.LOW)
 
 class Turret(object):
-    """
-    Class used for turret control.
-    """
     def __init__(self, friendly_mode=True):
         self.friendly_mode = friendly_mode
 
@@ -177,231 +242,43 @@ class Turret(object):
         self.mh = Adafruit_MotorHAT()
         atexit.register(self.__turn_off_motors)
 
-        # Stepper motor 1
-        self.sm_x = self.mh.getStepper(200, 1)      # 200 steps/rev, motor port #1
-        self.sm_x.setSpeed(5)                       # 5 RPM
-        self.current_x_steps = 0
-
-        # Stepper motor 2
-        self.sm_y = self.mh.getStepper(200, 2)      # 200 steps/rev, motor port #2
-        self.sm_y.setSpeed(5)                       # 5 RPM
-        self.current_y_steps = 0
-
-        # Relay
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(RELAY_PIN, GPIO.OUT)
-        GPIO.output(RELAY_PIN, GPIO.LOW)
+        self.stepper_x = Stepper(self.mh, 1, MOTOR_X_REVERSED)
+        self.stepper_y = Stepper(self.mh, 2, MOTOR_Y_REVERSED)
+        self.gun = Gun(RELAY_PIN, self.stepper_x, self.stepper_y, friendly_mode)
+        self.motion_sensor = MotionSensor()
 
     def calibrate(self):
-        """
-        Waits for input to calibrate the turret's axis
-        :return:
-        """
-        print "Please calibrate the tilt of the gun so that it is level. Commands: (w) moves up, " \
-              "(s) moves down. Press (enter) to finish.\n"
-        self.__calibrate_y_axis()
-
-        print "Please calibrate the yaw of the gun so that it aligns with the camera. Commands: (a) moves left, " \
-              "(d) moves right. Press (enter) to finish.\n"
-        self.__calibrate_x_axis()
-
-        print "Calibration finished."
-
-    def __calibrate_x_axis(self):
-        """
-        Waits for input to calibrate the x axis
-        :return:
-        """
-        with raw_mode(sys.stdin):
-            try:
-                while True:
-                    ch = sys.stdin.read(1)
-                    if not ch:
-                        break
-
-                    elif ch == "a":
-                        if MOTOR_X_REVERSED:
-                            Turret.move_backward(self.sm_x, 5)
-                        else:
-                            Turret.move_forward(self.sm_x, 5)
-                    elif ch == "d":
-                        if MOTOR_X_REVERSED:
-                            Turret.move_forward(self.sm_x, 5)
-                        else:
-                            Turret.move_backward(self.sm_x, 5)
-                    elif ch == "\n":
-                        break
-
-            except (KeyboardInterrupt, EOFError):
-                print "Error: Unable to calibrate turret. Exiting..."
-                sys.exit(1)
-
-    def __calibrate_y_axis(self):
-        """
-        Waits for input to calibrate the y axis.
-        :return:
-        """
-        with raw_mode(sys.stdin):
-            try:
-                while True:
-                    ch = sys.stdin.read(1)
-                    if not ch:
-                        break
-
-                    if ch == "w":
-                        if MOTOR_Y_REVERSED:
-                            Turret.move_forward(self.sm_y, 5)
-                        else:
-                            Turret.move_backward(self.sm_y, 5)
-                    elif ch == "s":
-                        if MOTOR_Y_REVERSED:
-                            Turret.move_backward(self.sm_y, 5)
-                        else:
-                            Turret.move_forward(self.sm_y, 5)
-                    elif ch == "\n":
-                        break
-
-            except (KeyboardInterrupt, EOFError):
-                print "Error: Unable to calibrate turret. Exiting..."
-                sys.exit(1)
-
-    def motion_detection(self, show_video=False):
-        """
-        Uses the camera to move the turret. OpenCV ust be configured to use this.
-        :return:
-        """
-        VideoUtils.find_motion(self.__move_axis, show_video=show_video)
-
-    def __move_axis(self, contour, frame):
-        (v_h, v_w) = frame.shape[:2]
-        (x, y, w, h) = cv2.boundingRect(contour)
-
-        # find height
-        target_steps_x = (2*MAX_STEPS_X * (x + w / 2) / v_w) - MAX_STEPS_X
-        target_steps_y = (2*MAX_STEPS_Y*(y+h/2) / v_h) - MAX_STEPS_Y
-
-        print "x: %s, y: %s" % (str(target_steps_x), str(target_steps_y))
-        print "current x: %s, current y: %s" % (str(self.current_x_steps), str(self.current_y_steps))
-
-        t_x = threading.Thread()
-        t_y = threading.Thread()
-        t_fire = threading.Thread()
-
-        # move x
-        if (target_steps_x - self.current_x_steps) > 0:
-            self.current_x_steps += 1
-            if MOTOR_X_REVERSED:
-                t_x = threading.Thread(target=Turret.move_forward, args=(self.sm_x, 2,))
-            else:
-                t_x = threading.Thread(target=Turret.move_backward, args=(self.sm_x, 2,))
-        elif (target_steps_x - self.current_x_steps) < 0:
-            self.current_x_steps -= 1
-            if MOTOR_X_REVERSED:
-                t_x = threading.Thread(target=Turret.move_backward, args=(self.sm_x, 2,))
-            else:
-                t_x = threading.Thread(target=Turret.move_forward, args=(self.sm_x, 2,))
-
-        # move y
-        if (target_steps_y - self.current_y_steps) > 0:
-            self.current_y_steps += 1
-            if MOTOR_Y_REVERSED:
-                t_y = threading.Thread(target=Turret.move_backward, args=(self.sm_y, 2,))
-            else:
-                t_y = threading.Thread(target=Turret.move_forward, args=(self.sm_y, 2,))
-        elif (target_steps_y - self.current_y_steps) < 0:
-            self.current_y_steps -= 1
-            if MOTOR_Y_REVERSED:
-                t_y = threading.Thread(target=Turret.move_forward, args=(self.sm_y, 2,))
-            else:
-                t_y = threading.Thread(target=Turret.move_backward, args=(self.sm_y, 2,))
-
-        # fire if necessary
-        if not self.friendly_mode:
-            if abs(target_steps_y - self.current_y_steps) <= 2 and abs(target_steps_x - self.current_x_steps) <= 2:
-                t_fire = threading.Thread(target=Turret.fire)
-
-        t_x.start()
-        t_y.start()
-        t_fire.start()
-
+        print("Calibrating...")
+        t_x = self.stepper_x.calibrate(MICRO_X_PIN, MICRO_X_POS)
+        t_y = self.stepper_y.calibrate(MICRO_Y_PIN, MICRO_Y_POS)
         t_x.join()
         t_y.join()
-        t_fire.join()
 
-    def interactive(self):
-        """
-        Starts an interactive session. Key presses determine movement.
-        :return:
-        """
+    def motion_detection(self, show_video=False):
+        self.stepper_x.start_loop()
+        self.stepper_y.start_loop()
+        self.gun.start_loop()
+        
+        self.motion_sensor.find_motion(self.__on_motion, self.__on_no_motion, show_video=show_video)
 
-        Turret.move_forward(self.sm_x, 1)
-        Turret.move_forward(self.sm_y, 1)
+    def __on_motion(self, motion_center, frame):
+        target_steps_x = (2*MAX_STEPS_X * motion_center[0]) - MAX_STEPS_X
+        target_steps_y = (2*MAX_STEPS_Y * motion_center[1]) - MAX_STEPS_Y
 
-        print 'Commands: Pivot with (a) and (d). Tilt with (w) and (s). Exit with (q)\n'
-        with raw_mode(sys.stdin):
-            try:
-                while True:
-                    ch = sys.stdin.read(1)
-                    if not ch or ch == "q":
-                        break
+        print ("x: %s, y: %s" % (str(target_steps_x), str(target_steps_y)))
+        print ("current x: %s, current y: %s" % (str(self.stepper_x.pos), str(self.stepper_y.pos)))
 
-                    if ch == "w":
-                        if MOTOR_Y_REVERSED:
-                            Turret.move_forward(self.sm_y, 5)
-                        else:
-                            Turret.move_backward(self.sm_y, 5)
-                    elif ch == "s":
-                        if MOTOR_Y_REVERSED:
-                            Turret.move_backward(self.sm_y, 5)
-                        else:
-                            Turret.move_forward(self.sm_y, 5)
-                    elif ch == "a":
-                        if MOTOR_X_REVERSED:
-                            Turret.move_backward(self.sm_x, 5)
-                        else:
-                            Turret.move_forward(self.sm_x, 5)
-                    elif ch == "d":
-                        if MOTOR_X_REVERSED:
-                            Turret.move_forward(self.sm_x, 5)
-                        else:
-                            Turret.move_backward(self.sm_x, 5)
-                    elif ch == "\n":
-                        Turret.fire()
-
-            except (KeyboardInterrupt, EOFError):
-                pass
-
-    @staticmethod
-    def fire():
-        GPIO.output(RELAY_PIN, GPIO.HIGH)
-        time.sleep(1)
-        GPIO.output(RELAY_PIN, GPIO.LOW)
-
-    @staticmethod
-    def move_forward(motor, steps):
-        """
-        Moves the stepper motor forward the specified number of steps.
-        :param motor:
-        :param steps:
-        :return:
-        """
-        motor.step(steps, Adafruit_MotorHAT.FORWARD,  Adafruit_MotorHAT.INTERLEAVE)
-
-    @staticmethod
-    def move_backward(motor, steps):
-        """
-        Moves the stepper motor backward the specified number of steps
-        :param motor:
-        :param steps:
-        :return:
-        """
-        motor.step(steps, Adafruit_MotorHAT.BACKWARD, Adafruit_MotorHAT.INTERLEAVE)
+        self.stepper_x.set_target(target_steps_x)
+        self.stepper_y.set_target(target_steps_y)
+        self.gun.set_fire_on_target(True)
+        
+    def __on_no_motion(self, frame):
+        self.stepper_x.set_target(0)
+        self.stepper_y.set_target(0)
+        self.gun.set_fire_on_target(False)
 
     def __turn_off_motors(self):
-        """
-        Recommended for auto-disabling motors on shutdown!
-        :return:
-        """
         self.mh.getMotor(1).run(Adafruit_MotorHAT.RELEASE)
         self.mh.getMotor(2).run(Adafruit_MotorHAT.RELEASE)
         self.mh.getMotor(3).run(Adafruit_MotorHAT.RELEASE)
@@ -409,18 +286,5 @@ class Turret(object):
 
 if __name__ == "__main__":
     t = Turret(friendly_mode=False)
-
-    user_input = raw_input("Choose an input mode: (1) Motion Detection, (2) Interactive\n")
-
-    if user_input == "1":
-        t.calibrate()
-        if raw_input("Live video? (y, n)\n").lower() == "y":
-            t.motion_detection(show_video=True)
-        else:
-            t.motion_detection()
-    elif user_input == "2":
-        if raw_input("Live video? (y, n)\n").lower() == "y":
-            thread.start_new_thread(VideoUtils.live_video, ())
-        t.interactive()
-    else:
-        print "Unknown input mode. Please choose a number (1) or (2)"
+    t.calibrate()
+    t.motion_detection(show_video=True)
