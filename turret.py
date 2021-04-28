@@ -256,10 +256,6 @@ class Turret(object):
         t_y.join()
 
     def motion_detection(self, show_video=False):
-        """
-        Uses the camera to move the turret. OpenCV ust be configured to use this.
-        :return:
-        """
         self.stepper_x.start_loop()
         self.stepper_y.start_loop()
         self.gun.start_loop()
@@ -267,8 +263,6 @@ class Turret(object):
         self.motion_sensor.find_motion(self.__on_motion, self.__on_no_motion, show_video=show_video)
 
     def __on_motion(self, motion_center, frame):
-
-        # find height
         target_steps_x = (2*MAX_STEPS_X * motion_center[0]) - MAX_STEPS_X
         target_steps_y = (2*MAX_STEPS_Y * motion_center[1]) - MAX_STEPS_Y
 
@@ -285,10 +279,6 @@ class Turret(object):
         self.gun.set_fire_on_target(False)
 
     def __turn_off_motors(self):
-        """
-        Recommended for auto-disabling motors on shutdown!
-        :return:
-        """
         self.mh.getMotor(1).run(Adafruit_MotorHAT.RELEASE)
         self.mh.getMotor(2).run(Adafruit_MotorHAT.RELEASE)
         self.mh.getMotor(3).run(Adafruit_MotorHAT.RELEASE)
@@ -297,4 +287,4 @@ class Turret(object):
 if __name__ == "__main__":
     t = Turret(friendly_mode=False)
     t.calibrate()
-    t.motion_detection(show_video=False)
+    t.motion_detection(show_video=True)
