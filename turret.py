@@ -102,12 +102,17 @@ class MotionSensor(object):
                 if c is None:
                     callback_nomotion(frame)
                 else:
+                    (x, y, w, h) = cv2.boundingRect(c)
+                    center = (x+int(w/2), y+int(h/2))
+                    center_norm = (center[0]/frame.shape[1], center[1]/frame.shape[0])
                     if show_video:
+                        print(center)
                         # Draw bounds and contour on frame
-                        (x, y, w, h) = cv2.boundingRect(c)
-                        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                         cv2.drawContours(frame, c, -1, (0, 255, 255), 1)
-                    callback_motion(((x+w/2)/frame.shape[1], (y+h/2)/frame.shape[0]), frame)
+                        cv2.circle(frame, center, 15, (0, 0, 255), 1)
+                        cv2.line(frame, (center[0]-24, center[1]), (center[0]+24, center[1]), (0, 0, 255), 1)
+                        cv2.line(frame, (center[0], center[1]-24), (center[0], center[1]+24), (0, 0, 255), 1)
+                    callback_motion(center_norm, frame)
 
                 # show the frame and record if the user presses a key
                 if show_video:
