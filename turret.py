@@ -157,8 +157,8 @@ class MotionSensor(object):
         return best_cnt
 
 class Stepper(object):
-    def __init__(self, kit, i_motor, reverse):
-        self.motor = kit.stepper1 if i_motor == 1 else kit.stepper2
+    def __init__(self, kit, is_stepper2, reverse):
+        self.motor = kit.stepper2 if is_stepper2 else kit.stepper1
         self.pos = 0
         self.reverse = reverse
         self.target = 0
@@ -247,8 +247,8 @@ class Turret(object):
         atexit.register(self.__turn_off_motors)
 
         GPIO.setmode(GPIO.BCM)
-        self.stepper_x = Stepper(self.mh, 1, MOTOR_X_REVERSED)
-        self.stepper_y = Stepper(self.mh, 2, MOTOR_Y_REVERSED)
+        self.stepper_x = Stepper(self.mh, False, MOTOR_X_REVERSED)
+        self.stepper_y = Stepper(self.mh, True, MOTOR_Y_REVERSED)
         self.gun = Gun(RELAY_PIN, self.stepper_x, self.stepper_y, friendly_mode)
         self.motion_sensor = MotionSensor()
 
