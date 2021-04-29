@@ -8,19 +8,20 @@ import contextlib
 
 import imutils
 import RPi.GPIO as GPIO
-from Adafruit_MotorHAT import Adafruit_MotorHAT, Adafruit_DCMotor, Adafruit_StepperMotor
+import adafruit_motorkit
+from adafruit_motor import stepper
 
 ### User Parameters ###
 
 MOTOR_X_REVERSED = False
 MOTOR_Y_REVERSED = False
 
-MAX_STEPS_X = 30
-MAX_STEPS_Y = 15
+MAX_STEPS_X = 300
+MAX_STEPS_Y = 150
 
 RELAY_PIN = 22
 
-MICRO_X_POS    = -35
+MICRO_X_POS = -35
 MICRO_Y_POS = -20
 MICRO_X_PIN = None
 MICRO_Y_PIN = None
@@ -137,7 +138,7 @@ class MotionSensor(object):
                 else:
                     static_count = 0   # Motion detected, try set recent to current
                     recent = gray
-                
+
 
         finally:
             # cleanup the camera and close any open windows
@@ -157,18 +158,18 @@ class MotionSensor(object):
         return best_cnt
 
 class Stepper(object):
-    def __init__(self, hat, i_motor, reversed):
-        self.motor = hat.getStepper(200, i_motor)
-        self.motor.setSpeed(5)
+    def __init__(self, kit, is_stepper2, reverse, name):
+        self.name = name
+        self.motor = kit.stepper2 if is_stepper2 else kit.stepper1
         self.pos = 0
-        self.reversed = reversed
+        self.reverse = reverse
         self.target = 0
-        self.flag = threading.Event()
         self.end = False
-        self.thread = threading.Thread(self.__loop)
         atexit.register(self.__end)
         
     def start_loop(self):
+        self.flag = threading.Event()
+        self.thread = threading.Thread(target=self.__loop, daemon=True)
         self.thread.start()
         
     def set_target(self, target):
@@ -184,13 +185,14 @@ class Stepper(object):
                 # If at target pause thread for target change
                 self.flag.wait()
             else:
-                self.step(2 if self.target - self.pos < 0 else -2)
+                self.step(1 if self.target - self.pos > 0 else -1)
                 
-    def __step(self, steps):
+    def step(self, steps):
         self.pos += steps
-        if self.reversed:
-            steps = -steps
-        self.motor.step(abs(steps), Adafruit_MotorHAT.FORWARD if steps > 0 else Adafruit_MotorHAT.BACKWARD, Adafruit_MotorHAT.INTERLEAVE)
+        print((self.name, self.pos, self.target))
+        direction = stepper.FORWARD if (steps > 0) != self.reverse else stepper.BACKWARD
+        for i in range(abs(steps)):
+            self.motor.onestep(direction=direction, style=stepper.DOUBLE)
         
     def calibrate(self, micro_pin, micro_pos):
         return threading.Thread(self.__calibrate_run, args=(micro_pin, micro_pos))
@@ -198,7 +200,7 @@ class Stepper(object):
     def __calibrate_run(self, micro_pin, micro_pos):
         GPIO.setup(micro_pin, GPIO.IN)
         while not GPIO.input(micro_pin):
-            self.__step(-1)
+            self.step(-1)
         self.pos = micro_pos
         
     def __end(self):
@@ -216,10 +218,10 @@ class Gun(object):
         GPIO.setup(relay, GPIO.OUT)
         GPIO.output(relay, GPIO.LOW)
         self.end = False
-        self.thread = threading.Thread(self.__loop)
         atexit.register(self.__end)
         
     def start_loop(self):
+        self.thread = threading.Thread(target=self.__loop, daemon=True)
         self.thread.start()
     
     def set_friendly(self, friendly):
@@ -244,12 +246,12 @@ class Turret(object):
         self.friendly_mode = friendly_mode
 
         # create a default object, no changes to I2C address or frequency
-        self.mh = Adafruit_MotorHAT()
+        self.mh = adafruit_motorkit.MotorKit()
         atexit.register(self.__turn_off_motors)
 
         GPIO.setmode(GPIO.BCM)
-        self.stepper_x = Stepper(self.mh, 1, MOTOR_X_REVERSED)
-        self.stepper_y = Stepper(self.mh, 2, MOTOR_Y_REVERSED)
+        self.stepper_x = Stepper(self.mh, False, MOTOR_X_REVERSED, "X")
+        self.stepper_y = Stepper(self.mh, True, MOTOR_Y_REVERSED, "Y")
         self.gun = Gun(RELAY_PIN, self.stepper_x, self.stepper_y, friendly_mode)
         self.motion_sensor = MotionSensor()
 
@@ -287,10 +289,11 @@ class Turret(object):
         self.gun.set_fire_on_target(False)
 
     def __turn_off_motors(self):
-        self.mh.getMotor(1).run(Adafruit_MotorHAT.RELEASE)
-        self.mh.getMotor(2).run(Adafruit_MotorHAT.RELEASE)
-        self.mh.getMotor(3).run(Adafruit_MotorHAT.RELEASE)
-        self.mh.getMotor(4).run(Adafruit_MotorHAT.RELEASE)
+        # TODO: FIX THIS
+        self.mh.getMotor(1).run(MotorKit.RELEASE)
+        self.mh.getMotor(2).run(MotorKit.RELEASE)
+        self.mh.getMotor(3).run(MotorKit.RELEASE)
+        self.mh.getMotor(4).run(MotorKit.RELEASE)
 
 if __name__ == "__main__":
     t = Turret(friendly_mode=False)
