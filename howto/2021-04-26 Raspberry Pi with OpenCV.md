@@ -68,13 +68,6 @@ sudo apt-get upgrade
 ```
 
 # Install OpenCV
-DOESN'T WORK
-```
-sudo apt install libatlas3-base libwebp6 libtiff5 libjasper1 libilmbase12 libopenexr22 libilmbase12 libgstreamer1.0-0 libavcodec57 libavformat57 libavutil55 libswscale4 libqtgui4 libqt4-test libqtcore4
-sudo pip3 install opencv-python
-```
-
-# Install OpenCV
 ```
 pip3 install --upgrade pip
 pip3 install opencv-python
@@ -97,3 +90,8 @@ Run "Remote Desktop Connection" from the Start menu. Username: pi, Password: ras
 On Pi application menu, select Prefences: Raspberry Pi Configuration.
 Under "Interfaces", Enable Camera.  This will require a reboot.
 ![Config](2021-04-26-Raspberry-Pi-with-OpenCV/preferences.png)
+
+# Motor Libraries
+```
+sudo pip3 install adafruit-circuitpython-motorkit
+```
