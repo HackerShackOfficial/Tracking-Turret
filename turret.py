@@ -162,12 +162,12 @@ class Stepper(object):
         self.pos = 0
         self.reverse = reverse
         self.target = 0
-        self.flag = threading.Event()
         self.end = False
-        self.thread = threading.Thread(self.__loop)
         atexit.register(self.__end)
         
     def start_loop(self):
+        self.flag = threading.Event()
+        self.thread = threading.Thread(self.__loop)
         self.thread.start()
         
     def set_target(self, target):
@@ -185,7 +185,7 @@ class Stepper(object):
             else:
                 self.step(1 if self.target - self.pos < 0 else -1)
                 
-    def __step(self, steps):
+    def step(self, steps):
         self.pos += steps
         direction = adafruit_motorkit.stepper.StepperMotor.FORWARD if (steps > 0) != self.reverse else adafruit_motorkit.stepper.StepperMotor.BACKWARD
         for i in range(abs(steps)):
@@ -197,7 +197,7 @@ class Stepper(object):
     def __calibrate_run(self, micro_pin, micro_pos):
         GPIO.setup(micro_pin, GPIO.IN)
         while not GPIO.input(micro_pin):
-            self.__step(-1)
+            self.step(-1)
         self.pos = micro_pos
         
     def __end(self):
