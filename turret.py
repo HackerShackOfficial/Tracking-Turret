@@ -167,7 +167,7 @@ class Stepper(object):
         
     def start_loop(self):
         self.flag = threading.Event()
-        self.thread = threading.Thread(self.__loop)
+        self.thread = threading.Thread(target=self.__loop, daemon=False)
         self.thread.start()
         
     def set_target(self, target):
@@ -215,10 +215,10 @@ class Gun(object):
         GPIO.setup(relay, GPIO.OUT)
         GPIO.output(relay, GPIO.LOW)
         self.end = False
-        self.thread = threading.Thread(self.__loop)
         atexit.register(self.__end)
         
     def start_loop(self):
+        self.thread = threading.Thread(target=self.__loop, daemon=False)
         self.thread.start()
     
     def set_friendly(self, friendly):
