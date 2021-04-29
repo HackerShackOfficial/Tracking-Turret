@@ -22,8 +22,8 @@ RELAY_PIN = 22
 
 MICRO_X_POS    = -35
 MICRO_Y_POS = -20
-MICRO_X_PIN = 0000000000000000000000 ######### TODO
-MICRO_Y_PIN = 0000000000000000000000 ######### TODO
+MICRO_X_PIN = None
+MICRO_Y_PIN = None
 
 #######################
 
@@ -254,11 +254,14 @@ class Turret(object):
         self.motion_sensor = MotionSensor()
 
     def calibrate(self):
-        print("Calibrating...")
-        t_x = self.stepper_x.calibrate(MICRO_X_PIN, MICRO_X_POS)
-        t_y = self.stepper_y.calibrate(MICRO_Y_PIN, MICRO_Y_POS)
-        t_x.join()
-        t_y.join()
+        if MICRO_X_PIN is None:
+            print("No Microswitch pin specified.  Skipping calibration.")
+        else:
+            print("Calibrating...")
+            t_x = self.stepper_x.calibrate(MICRO_X_PIN, MICRO_X_POS)
+            t_y = self.stepper_y.calibrate(MICRO_Y_PIN, MICRO_Y_POS)
+            t_x.join()
+            t_y.join()
 
     def motion_detection(self, show_video=False):
         self.stepper_x.start_loop()
