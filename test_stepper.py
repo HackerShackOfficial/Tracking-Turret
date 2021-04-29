@@ -2,7 +2,7 @@ import adafruit_motorkit
 import time
 
 mh = adafruit_motorkit.MotorKit()
-stepper = Stepper(mh, 1, MOTOR_X_REVERSED)
+stepper = Stepper(mh, False, False)
 
 for i in range(30):
     stepper.step(i)
