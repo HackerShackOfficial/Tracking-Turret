@@ -9,6 +9,7 @@ import contextlib
 import imutils
 import RPi.GPIO as GPIO
 import adafruit_motorkit
+from adafruit_motor import stepper
 
 ### User Parameters ###
 
@@ -187,9 +188,9 @@ class Stepper(object):
                 
     def step(self, steps):
         self.pos += steps
-        direction = adafruit_motorkit.stepper.StepperMotor.FORWARD if (steps > 0) != self.reverse else adafruit_motorkit.stepper.StepperMotor.BACKWARD
+        direction = adafruit_motorkit.FORWARD if (steps > 0) != self.reverse else adafruit_motorkit.BACKWARD
         for i in range(abs(steps)):
-            self.motor.onestep(direction=direction, style=adafruit_motorkit.stepper.StepperMotor.INTERLEAVE)
+            self.motor.onestep(direction=direction, style=adafruit_motorkit.INTERLEAVE)
         
     def calibrate(self, micro_pin, micro_pos):
         return threading.Thread(self.__calibrate_run, args=(micro_pin, micro_pos))
