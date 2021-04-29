@@ -8,8 +8,7 @@ import contextlib
 
 import imutils
 import RPi.GPIO as GPIO
-from adafruit_motorkit import MotorKit
-
+import adafruit_motorkit
 
 ### User Parameters ###
 
@@ -158,11 +157,10 @@ class MotionSensor(object):
         return best_cnt
 
 class Stepper(object):
-    def __init__(self, hat, i_motor, reversed):
-        self.motor = hat.getStepper(200, i_motor)
-        self.motor.setSpeed(5)
+    def __init__(self, kit, i_motor, reverse):
+        self.motor = kit.stepper1 if i_motor == 1 else kit.stepper2
         self.pos = 0
-        self.reversed = reversed
+        self.reverse = reverse
         self.target = 0
         self.flag = threading.Event()
         self.end = False
@@ -185,13 +183,13 @@ class Stepper(object):
                 # If at target pause thread for target change
                 self.flag.wait()
             else:
-                self.step(2 if self.target - self.pos < 0 else -2)
+                self.step(1 if self.target - self.pos < 0 else -1)
                 
     def __step(self, steps):
         self.pos += steps
-        if self.reversed:
-            steps = -steps
-        self.motor.step(abs(steps), Adafruit_MotorHAT.FORWARD if steps > 0 else Adafruit_MotorHAT.BACKWARD, Adafruit_MotorHAT.INTERLEAVE)
+        direction = adafruit_motorkit.stepper.StepperMotor.FORWARD if (steps > 0) != self.reverse else adafruit_motorkit.stepper.StepperMotor.BACKWARD
+        for i in range(abs(steps)):
+            self.motor.onestep(direction=direction, adafruit_motorkit.stepper.StepperMotor.INTERLEAVE)
         
     def calibrate(self, micro_pin, micro_pos):
         return threading.Thread(self.__calibrate_run, args=(micro_pin, micro_pos))
@@ -245,7 +243,7 @@ class Turret(object):
         self.friendly_mode = friendly_mode
 
         # create a default object, no changes to I2C address or frequency
-        self.mh = MotorKit()
+        self.mh = adafruit_motorkit.MotorKit()
         atexit.register(self.__turn_off_motors)
 
         GPIO.setmode(GPIO.BCM)
