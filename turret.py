@@ -188,9 +188,9 @@ class Stepper(object):
                 
     def step(self, steps):
         self.pos += steps
-        direction = adafruit_motorkit.FORWARD if (steps > 0) != self.reverse else adafruit_motorkit.BACKWARD
+        direction = stepper.FORWARD if (steps > 0) != self.reverse else stepper.BACKWARD
         for i in range(abs(steps)):
-            self.motor.onestep(direction=direction, style=adafruit_motorkit.INTERLEAVE)
+            self.motor.onestep(direction=direction, style=stepper.INTERLEAVE)
         
     def calibrate(self, micro_pin, micro_pos):
         return threading.Thread(self.__calibrate_run, args=(micro_pin, micro_pos))
