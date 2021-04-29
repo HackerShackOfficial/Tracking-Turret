@@ -16,12 +16,12 @@ from adafruit_motor import stepper
 MOTOR_X_REVERSED = False
 MOTOR_Y_REVERSED = False
 
-MAX_STEPS_X = 30
-MAX_STEPS_Y = 15
+MAX_STEPS_X = 300
+MAX_STEPS_Y = 150
 
 RELAY_PIN = 22
 
-MICRO_X_POS    = -35
+MICRO_X_POS = -35
 MICRO_Y_POS = -20
 MICRO_X_PIN = None
 MICRO_Y_PIN = None
@@ -138,7 +138,7 @@ class MotionSensor(object):
                 else:
                     static_count = 0   # Motion detected, try set recent to current
                     recent = gray
-                
+
 
         finally:
             # cleanup the camera and close any open windows
@@ -169,7 +169,7 @@ class Stepper(object):
         
     def start_loop(self):
         self.flag = threading.Event()
-        self.thread = threading.Thread(target=self.__loop, daemon=False)
+        self.thread = threading.Thread(target=self.__loop, daemon=True)
         self.thread.start()
         
     def set_target(self, target):
@@ -185,14 +185,14 @@ class Stepper(object):
                 # If at target pause thread for target change
                 self.flag.wait()
             else:
-                self.step(1 if self.target - self.pos < 0 else -1)
+                self.step(1 if self.target - self.pos > 0 else -1)
                 
     def step(self, steps):
         self.pos += steps
-        print(self.name, self.pos)
+        print((self.name, self.pos, self.target))
         direction = stepper.FORWARD if (steps > 0) != self.reverse else stepper.BACKWARD
         for i in range(abs(steps)):
-            self.motor.onestep(direction=direction, style=stepper.INTERLEAVE)
+            self.motor.onestep(direction=direction, style=stepper.DOUBLE)
         
     def calibrate(self, micro_pin, micro_pos):
         return threading.Thread(self.__calibrate_run, args=(micro_pin, micro_pos))
@@ -221,7 +221,7 @@ class Gun(object):
         atexit.register(self.__end)
         
     def start_loop(self):
-        self.thread = threading.Thread(target=self.__loop, daemon=False)
+        self.thread = threading.Thread(target=self.__loop, daemon=True)
         self.thread.start()
     
     def set_friendly(self, friendly):
@@ -289,6 +289,7 @@ class Turret(object):
         self.gun.set_fire_on_target(False)
 
     def __turn_off_motors(self):
+        # TODO: FIX THIS
         self.mh.getMotor(1).run(MotorKit.RELEASE)
         self.mh.getMotor(2).run(MotorKit.RELEASE)
         self.mh.getMotor(3).run(MotorKit.RELEASE)
