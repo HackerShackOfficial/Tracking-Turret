@@ -2,6 +2,8 @@ import adafruit_motorkit
 from stepper import Stepper
 from gun import Gun
 from motion_sensor import MotionSensor
+import atexit
+import RPi.GPIO as GPIO
 
 class Turret(object):
     def __init__(self, motors_reversed, motor_range,
@@ -24,7 +26,7 @@ class Turret(object):
         self.motion_sensor = MotionSensor()
 
     def calibrate(self):
-        if micro_pins is None or micro_pos is None:
+        if self.micro_pins is None or self.micro_pos is None:
             print("No Microswitch pin specified.  Skipping calibration.")
         else:
             print("Calibrating...")
