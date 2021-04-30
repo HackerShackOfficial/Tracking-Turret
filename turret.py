@@ -1,7 +1,7 @@
-### User Parameters ###
-
-
-#######################
+import adafruit_motorkit
+from stepper import Stepper
+from gun import Gun
+from motion_sensor import MotionSensor
 
 class Turret(object):
     def __init__(self, motors_reversed, motor_range,
