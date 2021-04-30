@@ -1,4 +1,4 @@
-from turret import MotionSensor
+from motion_sensor import MotionSensor
 from datetime import datetime
 
 def on_motion(center, frame):

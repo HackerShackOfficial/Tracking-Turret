@@ -11,6 +11,14 @@ class MotionSensor(object):
         self.camera = cv2.VideoCapture(camera_port)
         self.camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)   # Reduce Lag
         self.diag = diag
+        self.latest_img = None
+        self.end = False
+
+        print("MOTION SENSOR********************************************************************************")
+        print(self)
+
+    def quit(self):
+        self.end = True
 
     def grab_image(self):
         grabbed, frame = self.camera.read()
@@ -35,7 +43,7 @@ class MotionSensor(object):
     def get_empty_frame(self):
         frame, candidate = self.grab_image()
         static_count = 0
-        while static_count < 20:
+        while static_count < 20 and not self.end:
             frame, gray = self.grab_image()
             diff = self.compare(candidate, gray)
 
@@ -55,7 +63,11 @@ class MotionSensor(object):
             else:
                 static_count = 0   # Motion detected, try current image as base
                 candidate = gray
-            print(static_count, "similar images.", diff_count)
+            #print(static_count, "similar images.", diff_count)
+
+            cv2.putText(frame, str(static_count), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255))
+            self.latest_img = frame
+            cv2.imshow("Frame", frame)
             time.sleep(0.250)
         
         cv2.destroyAllWindows()
@@ -69,7 +81,7 @@ class MotionSensor(object):
             static_count = 0
 
             # loop over the frames of the video
-            while True:
+            while not self.end:
                 # Find contour in difference between base and current
                 frame, gray = self.grab_image()
                 diff = self.compare(base, gray)
@@ -81,13 +93,14 @@ class MotionSensor(object):
                     (x, y, w, h) = cv2.boundingRect(c)
                     center = (x+int(w/2), y+int(h/2))
                     center_norm = (2*(center[0]/frame.shape[1] - 0.5), 2*(center[1]/frame.shape[0] - 0.5))  # Range -1 to 1
-                    if show_video:
-                        print(center)
-                        # Draw bounds and contour on frame
-                        cv2.drawContours(frame, c, -1, (0, 255, 255), 1)
-                        cv2.circle(frame, center, 15, (0, 0, 255), 1)
-                        cv2.line(frame, (center[0]-24, center[1]), (center[0]+24, center[1]), (0, 0, 255), 1)
-                        cv2.line(frame, (center[0], center[1]-24), (center[0], center[1]+24), (0, 0, 255), 1)
+                    
+                    print(center, center_norm)
+                    # Draw bounds and contour on frame
+                    cv2.drawContours(frame, c, -1, (0, 255, 255), 1)
+                    cv2.circle(frame, center, 15, (0, 0, 255), 1)
+                    cv2.line(frame, (center[0]-24, center[1]), (center[0]+24, center[1]), (0, 0, 255), 1)
+                    cv2.line(frame, (center[0], center[1]-24), (center[0], center[1]+24), (0, 0, 255), 1)
+                    self.latest_img = frame
                     callback_motion(center_norm, frame)
 
                 # show the frame and record if the user presses a key
