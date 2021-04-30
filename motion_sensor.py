@@ -7,15 +7,13 @@ class FrameGrabException(Exception):
     pass
 
 class MotionSensor(object):
-    def __init__(self, camera_port=0, diag=False):
+    def __init__(self, camera_port=0, diag=False, show_video=False):
         self.camera = cv2.VideoCapture(camera_port)
         self.camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)   # Reduce Lag
         self.diag = diag
         self.latest_img = None
         self.end = False
-
-        print("MOTION SENSOR********************************************************************************")
-        print(self)
+        self.show_video = show_video
 
     def quit(self):
         self.end = True
@@ -47,7 +45,7 @@ class MotionSensor(object):
             frame, gray = self.grab_image()
             diff = self.compare(candidate, gray)
 
-            if self.diag:
+            if self.show_video:
                 #cv2.imshow("Frame", frame)
                 #cv2.imshow("Base", candidate)
                 #cv2.imshow("Current", gray)
@@ -63,7 +61,7 @@ class MotionSensor(object):
             else:
                 static_count = 0   # Motion detected, try current image as base
                 candidate = gray
-            #print(static_count, "similar images.", diff_count)
+            print(static_count, "similar images.", diff_count)
 
             cv2.putText(frame, str(static_count), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255))
             self.latest_img = frame
@@ -74,7 +72,7 @@ class MotionSensor(object):
 
         return candidate
     
-    def find_motion(self, callback_motion, callback_nomotion, show_video=False):
+    def find_motion(self, callback_motion, callback_nomotion):
         try:
             base = self.get_empty_frame()
             recent = base
@@ -104,7 +102,7 @@ class MotionSensor(object):
                     callback_motion(center_norm, frame)
 
                 # show the frame and record if the user presses a key
-                if show_video:
+                if self.show_video:
                     cv2.imshow("Feed", frame)
                     key = cv2.waitKey(1) & 0xFF
 

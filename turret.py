@@ -4,26 +4,33 @@ from gun import Gun
 from motion_sensor import MotionSensor
 import atexit
 import RPi.GPIO as GPIO
+import dummy
 
 class Turret(object):
     def __init__(self, motors_reversed, motor_range,
         friendly_mode=True,
         trigger_pin = None,
-        micro_pins = None, micro_pos = None):
+        micro_pins = None, micro_pos = None,
+        show_video = False):
         self.friendly_mode = friendly_mode
         self.micro_pins = micro_pins
         self.micro_pos = micro_pos
         self.motor_range = motor_range
 
         # create a default object, no changes to I2C address or frequency
-        self.mh = adafruit_motorkit.MotorKit()
+        try:
+            self.mh = adafruit_motorkit.MotorKit()
+        except ValueError:
+            print("***************************************************************")
+            print("Failed to initialise MotorKit using dummy")
+            self.mh = dummy.MotorKit()
         atexit.register(self.__turn_off_motors)
 
         GPIO.setmode(GPIO.BCM)
         self.stepper_x = Stepper(self.mh, False, motors_reversed[0], "X")
         self.stepper_y = Stepper(self.mh, True, motors_reversed[1], "Y")
         self.gun = Gun(trigger_pin, self.stepper_x, self.stepper_y, friendly_mode)
-        self.motion_sensor = MotionSensor()
+        self.motion_sensor = MotionSensor(show_video=show_video)
 
     def calibrate(self):
         if self.micro_pins is None or self.micro_pos is None:
@@ -35,12 +42,12 @@ class Turret(object):
             t_x.join()
             t_y.join()
 
-    def motion_detection(self, show_video=False):
+    def motion_detection(self):
         self.stepper_x.start_loop()
         self.stepper_y.start_loop()
         self.gun.start_loop()
         
-        self.motion_sensor.find_motion(self.__on_motion, self.__on_no_motion, show_video=show_video)
+        self.motion_sensor.find_motion(self.__on_motion, self.__on_no_motion)
 
     def __on_motion(self, motion_center, frame):
         target_steps_x = self.motor_range[0] * motion_center[0]
@@ -60,7 +67,10 @@ class Turret(object):
 
     def __turn_off_motors(self):
         # TODO: FIX THIS
+        '''
         self.mh.getMotor(1).run(MotorKit.RELEASE)
         self.mh.getMotor(2).run(MotorKit.RELEASE)
         self.mh.getMotor(3).run(MotorKit.RELEASE)
         self.mh.getMotor(4).run(MotorKit.RELEASE)
+        '''
+        pass

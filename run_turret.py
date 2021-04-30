@@ -12,6 +12,7 @@ if __name__ == "__main__":
     t = Turret(friendly_mode=False,
         trigger_pin = TRIGGER_PIN,
         micro_pins = MICRO_PINS, micro_pos = MICRO_POS,
-        motors_reversed = MOTORS_REVERSED, motor_range = MOTORS_RANGE)
+        motors_reversed = MOTORS_REVERSED, motor_range = MOTORS_RANGE,
+        show_video=True)
     t.calibrate()
-    t.motion_detection(show_video=True)
+    t.motion_detection()

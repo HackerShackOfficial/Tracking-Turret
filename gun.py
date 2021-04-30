@@ -5,6 +5,7 @@ import atexit
 
 class Gun(object):
     def __init__(self, relay, stepper_x, stepper_y, friendly):
+        self.thread_started = False
         self.x = stepper_x
         self.y = stepper_y
         self.relay = relay
@@ -18,6 +19,7 @@ class Gun(object):
     def start_loop(self):
         self.thread = threading.Thread(target=self.__loop, daemon=True)
         self.thread.start()
+        self.thread_started = True
     
     def set_friendly(self, friendly):
         self.friendly = friendly
@@ -33,5 +35,6 @@ class Gun(object):
             
     def __end(self):
         self.end = True
-        self.thread.join()
+        if self.thread_started:
+            self.thread.join()
         GPIO.output(self.relay, GPIO.LOW)

@@ -6,6 +6,7 @@ import threading
 
 class Stepper(object):
     def __init__(self, kit, is_stepper2, reverse, name):
+        self.thread_start = False
         self.name = name
         self.motor = kit.stepper2 if is_stepper2 else kit.stepper1
         self.pos = 0
@@ -18,6 +19,7 @@ class Stepper(object):
         self.flag = threading.Event()
         self.thread = threading.Thread(target=self.__loop, daemon=True)
         self.thread.start()
+        self.thread_started = True
         
     def set_target(self, target):
         self.target = target
@@ -52,5 +54,6 @@ class Stepper(object):
         
     def __end(self):
         self.end = True
-        self.flag.set()
-        self.thread.join()
+        if self.thread_started:
+            self.flag.set()
+            self.thread.join()
