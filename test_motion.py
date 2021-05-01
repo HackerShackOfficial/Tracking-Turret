@@ -7,6 +7,6 @@ def on_motion(center, frame):
 def on_no_motion(frame):
     print(datetime.now(), "NO MOTION")
     
-motion_sensor = MotionSensor(on_motion, on_no_motion, diag=True)
+motion_sensor = MotionSensor(on_motion, on_no_motion, diag=True, show_video=True)
 
-motion_sensor.find_motion(show_video=True)
+motion_sensor.find_motion()
