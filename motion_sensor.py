@@ -7,13 +7,14 @@ class FrameGrabException(Exception):
     pass
 
 class MotionSensor(object):
-    def __init__(self, camera_port=0, diag=False, show_video=False, max_frame_rate = 0.250):
+    def __init__(self, callback_motion, callback_nomotion, camera_port=0, diag=False, show_video=False, max_frame_rate = 0.250):
         self.camera = cv2.VideoCapture(camera_port)
         self.camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)   # Reduce Lag
         self.diag = diag
-        self.latest_img = None
         self.end = False
         self.show_video = show_video
+        self.callback_motion = callback_motion
+        self.callback_nomotion = callback_nomotion
 
         self.max_frame_rate = max_frame_rate
         self.last_frame_time = time.time()
@@ -70,16 +71,17 @@ class MotionSensor(object):
                 candidate = gray
             print(static_count, "similar images.", diff_count)
 
-            cv2.putText(frame, str(static_count), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255))
-            self.latest_img = frame
-            cv2.imshow("Frame", frame)
+            cv2.putText(frame, str(static_count), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255))
+            self.callback_nomotion(frame)
+            if self.show_video:
+                cv2.imshow("Frame", frame)
             time.sleep(0.250)
         
         cv2.destroyAllWindows()
 
         return candidate
     
-    def find_motion(self, callback_motion, callback_nomotion):
+    def find_motion(self):
         try:
             base = self.get_empty_frame()
             recent = base
@@ -93,7 +95,7 @@ class MotionSensor(object):
                 c = MotionSensor.get_best_contour(diff.copy(), 5000)
 
                 if c is None:
-                    callback_nomotion(frame)
+                    self.callback_nomotion(frame)
                 else:
                     (x, y, w, h) = cv2.boundingRect(c)
                     center = (x+int(w/2), y+int(h/2))
@@ -105,8 +107,7 @@ class MotionSensor(object):
                     cv2.circle(frame, center, 15, (0, 0, 255), 1)
                     cv2.line(frame, (center[0]-24, center[1]), (center[0]+24, center[1]), (0, 0, 255), 1)
                     cv2.line(frame, (center[0], center[1]-24), (center[0], center[1]+24), (0, 0, 255), 1)
-                    self.latest_img = frame
-                    callback_motion(center_norm, frame)
+                    self.callback_motion(center_norm, frame)
 
                 # show the frame and record if the user presses a key
                 if self.show_video:

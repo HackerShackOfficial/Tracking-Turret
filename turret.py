@@ -30,7 +30,7 @@ class Turret(object):
         self.stepper_x = Stepper(self.mh, False, motors_reversed[0], "X")
         self.stepper_y = Stepper(self.mh, True, motors_reversed[1], "Y")
         self.gun = Gun(trigger_pin, self.stepper_x, self.stepper_y, friendly_mode)
-        self.motion_sensor = MotionSensor(show_video=show_video)
+        self.motion_sensor = MotionSensor(self.__on_motion, self.__on_no_motion, show_video=show_video)
 
     def calibrate(self):
         if self.micro_pins is None or self.micro_pos is None:
@@ -47,7 +47,7 @@ class Turret(object):
         self.stepper_y.start_loop()
         self.gun.start_loop()
         
-        self.motion_sensor.find_motion(self.__on_motion, self.__on_no_motion)
+        self.motion_sensor.find_motion()
 
     def __on_motion(self, motion_center, frame):
         target_steps_x = self.motor_range[0] * motion_center[0]
