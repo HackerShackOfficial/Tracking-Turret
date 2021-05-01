@@ -15,7 +15,7 @@ def on_no_motion(frame):
     print(datetime.now(), "NO MOTION")
 
 def motion_thread():
-    ms.find_motion(on_motion, on_no_motion, show_video=True)
+    ms.find_motion(on_motion, on_no_motion)
 
 @app.route("/")
 def index():
@@ -27,7 +27,7 @@ def start():
     if ms is not None:
         ms.quit()
 
-    ms = MotionSensor(diag=True)
+    ms = MotionSensor()
     motion_sensor_thread = threading.Thread(target=motion_thread, daemon=True)
     motion_sensor_thread.start()
     return index()

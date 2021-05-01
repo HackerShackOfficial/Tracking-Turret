@@ -7,13 +7,16 @@ class FrameGrabException(Exception):
     pass
 
 class MotionSensor(object):
-    def __init__(self, camera_port=0, diag=False, show_video=False):
+    def __init__(self, camera_port=0, diag=False, show_video=False, max_frame_rate = 0.250):
         self.camera = cv2.VideoCapture(camera_port)
         self.camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)   # Reduce Lag
         self.diag = diag
         self.latest_img = None
         self.end = False
         self.show_video = show_video
+
+        self.max_frame_rate = max_frame_rate
+        self.last_frame_time = time.time()
 
     def quit(self):
         self.end = True
@@ -42,6 +45,10 @@ class MotionSensor(object):
         frame, candidate = self.grab_image()
         static_count = 0
         while static_count < 20 and not self.end:
+            now = time.time()
+            if self.max_frame_rate - (now - self.last_frame_time) > 0:
+                time.sleep(self.max_frame_rate - (now - self.last_frame_time))
+            self.last_frame_time = time.time()
             frame, gray = self.grab_image()
             diff = self.compare(candidate, gray)
 
