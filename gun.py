@@ -15,6 +15,8 @@ class Gun(object):
         GPIO.output(relay, GPIO.LOW)
         self.end = False
         atexit.register(self.__end)
+
+        self.firing = False
         
     def start_loop(self):
         self.thread = threading.Thread(target=self.__loop, daemon=True)
@@ -26,11 +28,15 @@ class Gun(object):
         
     def set_fire_on_target(self, fire_on_target):
         self.fire_on_target = fire_on_target
+
+    @property
+    def on_target(self):
+        return self.x.on_target() and self.y.on_target()
     
     def __loop(self):
         while not self.end:
-            fire = not self.friendly and self.fire_on_target and self.x.on_target() and self.y.on_target()
-            GPIO.output(self.relay, GPIO.HIGH if fire else GPIO.LOW)
+            self.firing = not self.friendly and self.fire_on_target and self.on_target
+            GPIO.output(self.relay, GPIO.HIGH if self.firing else GPIO.LOW)
             time.sleep(1)
             
     def __end(self):

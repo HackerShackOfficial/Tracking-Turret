@@ -26,10 +26,7 @@ class StepperMotor(object):
         
     def __loop(self):
         while not self.end:
-            if (self.target == self.pos):
-                # If at target pause thread for target change
-                self.flag.wait()
-            else:
+            if (abs(self.target - self.pos) >= 1):
                 self.step(1 if self.target - self.pos > 0 else -1)
             time.sleep(0.1)
                 
@@ -47,8 +44,37 @@ class StepperMotor(object):
             self.thread.join()
 
 class Gun(object):
-    def start_loop(self):
-        pass
+    def __init__(self, stepper_x, stepper_y, friendly):
+        self.thread_started = False
+        self.x = stepper_x
+        self.y = stepper_y
+        self.friendly = friendly
+        self.fire_on_target = False
+        self.end = False
+        atexit.register(self.__end)
 
-    def set_fire_on_target(self, x):
-        pass
+        self.firing = False
+        
+    def start_loop(self):
+        self.thread = threading.Thread(target=self.__loop, daemon=True)
+        self.thread.start()
+        self.thread_started = True
+    
+    def set_friendly(self, friendly):
+        self.friendly = friendly
+        
+    def set_fire_on_target(self, fire_on_target):
+        self.fire_on_target = fire_on_target
+    
+    def on_target(self):
+        return self.x.on_target() and self.y.on_target()
+
+    def __loop(self):
+        while not self.end:
+            self.firing = not self.friendly and self.fire_on_target and self.on_target()
+            time.sleep(1)
+            
+    def __end(self):
+        self.end = True
+        if self.thread_started:
+            self.thread.join()

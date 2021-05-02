@@ -19,7 +19,7 @@ body
 
 .menu
 {
-    width: 200px;
+    width: 300px;
     float: left;
     min-height: 200px;
     padding: 20px;
@@ -34,4 +34,9 @@ body
 .ms_image
 {
     margin: 10px;
+}
+
+table
+{
+    width:100%;
 }

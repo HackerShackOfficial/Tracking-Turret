@@ -37,7 +37,7 @@ class Turret(object):
         if has_motors:
             self.gun = Gun(trigger_pin, self.stepper_x, self.stepper_y, friendly_mode)
         else:
-            self.gun = dummy.Gun()
+            self.gun = dummy.Gun(self.stepper_x, self.stepper_y, friendly_mode)
         self.motion_sensor = MotionSensor(self.__on_motion, self.__on_no_motion, show_video=show_video)
 
     def calibrate(self):
