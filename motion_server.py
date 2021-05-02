@@ -39,7 +39,6 @@ def start():
 @app.route("/ms")
 def motion_sensor_img():
     global ms, img
-    print("*************************************************************", img.shape)
     _, png = cv2.imencode('.png', img)
     response = flask.make_response(png.tobytes())
     response.headers["Content-Type"] = "image/png"

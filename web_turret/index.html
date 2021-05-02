@@ -1,0 +1,18 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="static/turret.css">
+        <script>
+            function refresh_image()
+            {
+                var el = document.getElementById("ms_image");
+                el.src = "ms?t=" + new Date().getTime();
+            }
+        </script>
+    </head>
+    <body onload="setInterval(refresh_image, 250)">
+        <div class="menu rounded">
+            <h1>Turret</h1>
+        </div>
+        <img class="rounded ms_image" src="ms" id="ms_image" />
+    </body>
+</html>

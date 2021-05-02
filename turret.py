@@ -1,10 +1,16 @@
-import adafruit_motorkit
-from stepper import Stepper
-from gun import Gun
+try:
+    import adafruit_motorkit
+    import RPi.GPIO as GPIO
+    from stepper import Stepper
+    from gun import Gun
+    has_motors = True
+except:
+    import dummy
+    has_motors = False
+    print("***************************************************************")
+    print("Failed to initialise Motors or GPIO.  Using dummy")
 from motion_sensor import MotionSensor
 import atexit
-import RPi.GPIO as GPIO
-import dummy
 
 class Turret(object):
     def __init__(self, motors_reversed, motor_range,
@@ -18,18 +24,20 @@ class Turret(object):
         self.motor_range = motor_range
 
         # create a default object, no changes to I2C address or frequency
-        try:
-            self.mh = adafruit_motorkit.MotorKit()
-        except ValueError:
-            print("***************************************************************")
-            print("Failed to initialise MotorKit using dummy")
-            self.mh = dummy.MotorKit()
+        if has_motors:
+            mh = adafruit_motorkit.MotorKit()
+            GPIO.setmode(GPIO.BCM)
+            self.stepper_x = Stepper(mh, False, motors_reversed[0], "X")
+            self.stepper_y = Stepper(mh, True, motors_reversed[1], "Y")
+        else:
+            self.stepper_x = dummy.StepperMotor()
+            self.stepper_y = dummy.StepperMotor()
         atexit.register(self.__turn_off_motors)
 
-        GPIO.setmode(GPIO.BCM)
-        self.stepper_x = Stepper(self.mh, False, motors_reversed[0], "X")
-        self.stepper_y = Stepper(self.mh, True, motors_reversed[1], "Y")
-        self.gun = Gun(trigger_pin, self.stepper_x, self.stepper_y, friendly_mode)
+        if has_motors:
+            self.gun = Gun(trigger_pin, self.stepper_x, self.stepper_y, friendly_mode)
+        else:
+            self.gun = dummy.Gun()
         self.motion_sensor = MotionSensor(self.__on_motion, self.__on_no_motion, show_video=show_video)
 
     def calibrate(self):

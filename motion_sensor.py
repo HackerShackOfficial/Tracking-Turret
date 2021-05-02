@@ -7,7 +7,7 @@ class FrameGrabException(Exception):
     pass
 
 class MotionSensor(object):
-    def __init__(self, callback_motion, callback_nomotion, camera_port=0, diag=False, show_video=False, max_frame_rate = 0.250):
+    def __init__(self, callback_motion=None, callback_nomotion=None, camera_port=0, diag=False, show_video=False, max_frame_rate = 0.250):
         self.camera = cv2.VideoCapture(camera_port)
         self.camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)   # Reduce Lag
         self.diag = diag
@@ -18,6 +18,8 @@ class MotionSensor(object):
 
         self.max_frame_rate = max_frame_rate
         self.last_frame_time = time.time()
+
+        self.last_image = None
 
     def quit(self):
         self.end = True
@@ -73,6 +75,7 @@ class MotionSensor(object):
 
             cv2.putText(frame, str(static_count), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255))
             self.callback_nomotion(frame)
+            self.last_image = frame
             if self.show_video:
                 cv2.imshow("Frame", frame)
             time.sleep(0.250)
@@ -101,7 +104,6 @@ class MotionSensor(object):
                     center = (x+int(w/2), y+int(h/2))
                     center_norm = (2*(center[0]/frame.shape[1] - 0.5), 2*(center[1]/frame.shape[0] - 0.5))  # Range -1 to 1
                     
-                    print(center, center_norm)
                     # Draw bounds and contour on frame
                     cv2.drawContours(frame, c, -1, (0, 255, 255), 1)
                     cv2.circle(frame, center, 15, (0, 0, 255), 1)
@@ -110,6 +112,7 @@ class MotionSensor(object):
                     self.callback_motion(center_norm, frame)
 
                 # show the frame and record if the user presses a key
+                self.last_image = frame
                 if self.show_video:
                     cv2.imshow("Feed", frame)
                     key = cv2.waitKey(1) & 0xFF
