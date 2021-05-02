@@ -14,10 +14,10 @@ import atexit
 
 class Turret(object):
     def __init__(self, motors_reversed, motor_range,
-        friendly_mode=True,
-        trigger_pin = None,
-        micro_pins = None, micro_pos = None,
-        show_video = False):
+            friendly_mode=True,
+            trigger_pin = None,
+            micro_pins = None, micro_pos = None,
+            show_video = False):
         self.friendly_mode = friendly_mode
         self.micro_pins = micro_pins
         self.micro_pos = micro_pos
@@ -30,8 +30,8 @@ class Turret(object):
             self.stepper_x = Stepper(mh, False, motors_reversed[0], "X")
             self.stepper_y = Stepper(mh, True, motors_reversed[1], "Y")
         else:
-            self.stepper_x = dummy.StepperMotor()
-            self.stepper_y = dummy.StepperMotor()
+            self.stepper_x = dummy.StepperMotor("X")
+            self.stepper_y = dummy.StepperMotor("Y")
         atexit.register(self.__turn_off_motors)
 
         if has_motors:

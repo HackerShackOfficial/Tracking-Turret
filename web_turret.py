@@ -36,13 +36,10 @@ def turret_img():
 def ping():
     return "PING"
 
-ti = 0
-
 @app.route("/turret_info")
 def turret_info():
-    global ti
-    ti += 1
-    return str(ti)
+    global turret
+    return flask.render_template("turret_info.html", turret=turret)
 
 def start_runner():
     # Ping webserver in separate thread so that on_web_start is called
@@ -62,5 +59,6 @@ def start_runner():
     t = threading.Thread(target=thread, daemon=True)
     t.start()
 
-start_runner()
-app.run(host="0.0.0.0", port=8080, debug=True)
+if __name__ == "__main__":
+    start_runner()
+    app.run(host="0.0.0.0", port=8080, debug=True)

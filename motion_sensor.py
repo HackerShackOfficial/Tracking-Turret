@@ -7,6 +7,11 @@ class FrameGrabException(Exception):
     pass
 
 class MotionSensor(object):
+    INITIALISED = 0
+    GETTING_EMPTY_FRAME = 1
+    GOT_EMPTY_FRAME = 2
+    TRACKING = 3
+
     def __init__(self, callback_motion=None, callback_nomotion=None, camera_port=0, diag=False, show_video=False, max_frame_rate = 0.250):
         self.camera = cv2.VideoCapture(camera_port)
         self.camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)   # Reduce Lag
@@ -21,8 +26,17 @@ class MotionSensor(object):
 
         self.last_image = None
 
+        self.state = MotionSensor.INITIALISED
+        self.static_count = 0
+        self.center_norm = (0,0)
+
     def quit(self):
         self.end = True
+
+    @property
+    def state_string(self):
+        s = ("Initialised", "Getting Empty Frame", "Got Empty Frame", "Tracking")
+        return s[self.state]
 
     def grab_image(self):
         now = time.time()
@@ -50,9 +64,10 @@ class MotionSensor(object):
     # Similar is defined as having zero thresholded delta from
     # first image of the set (canidate), after greying, blurring.
     def get_empty_frame(self):
+        self.state = MotionSensor.GETTING_EMPTY_FRAME
         frame, candidate = self.grab_image()
-        static_count = 0
-        while static_count < 20 and not self.end:
+        self.static_count = 0
+        while self.static_count < 20 and not self.end:
             frame, gray = self.grab_image()
             diff = self.compare(candidate, gray)
 
@@ -68,13 +83,13 @@ class MotionSensor(object):
 
             diff_count = cv2.countNonZero(diff)
             if diff_count == 0:  # No motion
-                static_count += 1
+                self.static_count += 1
             else:
-                static_count = 0   # Motion detected, try current image as base
+                self.static_count = 0   # Motion detected, try current image as base
                 candidate = gray
-            print(static_count, "similar images.", diff_count)
+            print(self.static_count, "similar images.", diff_count)
 
-            cv2.putText(frame, str(static_count), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255))
+            cv2.putText(frame, str(self.static_count), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255))
             self.callback_nomotion(frame)
             self.last_image = frame
             if self.show_video:
@@ -82,6 +97,7 @@ class MotionSensor(object):
             time.sleep(0.250)
         
         cv2.destroyAllWindows()
+        self.state = MotionSensor.GOT_EMPTY_FRAME
 
         return candidate
     
@@ -89,7 +105,8 @@ class MotionSensor(object):
         try:
             base = self.get_empty_frame()
             recent = base
-            static_count = 0
+            self.state = MotionSensor.TRACKING
+            self.static_count = 0
 
             # loop over the frames of the video
             while not self.end:
@@ -103,14 +120,14 @@ class MotionSensor(object):
                 else:
                     (x, y, w, h) = cv2.boundingRect(c)
                     center = (x+int(w/2), y+int(h/2))
-                    center_norm = (2*(center[0]/frame.shape[1] - 0.5), 2*(center[1]/frame.shape[0] - 0.5))  # Range -1 to 1
+                    self.center_norm = (2*(center[0]/frame.shape[1] - 0.5), 2*(center[1]/frame.shape[0] - 0.5))  # Range -1 to 1
                     
                     # Draw bounds and contour on frame
                     cv2.drawContours(frame, c, -1, (0, 255, 255), 1)
                     cv2.circle(frame, center, 15, (0, 0, 255), 1)
                     cv2.line(frame, (center[0]-24, center[1]), (center[0]+24, center[1]), (0, 0, 255), 1)
                     cv2.line(frame, (center[0], center[1]-24), (center[0], center[1]+24), (0, 0, 255), 1)
-                    self.callback_motion(center_norm, frame)
+                    self.callback_motion(self.center_norm, frame)
 
                 # show the frame and record if the user presses a key
                 self.last_image = frame
@@ -126,15 +143,15 @@ class MotionSensor(object):
                 diff = self.compare(recent, gray)
                 diff_count = cv2.countNonZero(diff)
                 if diff_count == 0:  # No motion
-                    static_count += 1
-                    if static_count > 40: # No motion for 40 frames
+                    self.static_count += 1
+                    if  self.static_count > 40: # No motion for 40 frames
                         # Set recent as new base
                         base = recent
                         recent = gray
-                        static_count = 0
+                        self.static_count = 0
                         print("New base set")
                 else:
-                    static_count = 0   # Motion detected, try set recent to current
+                    self.static_count = 0   # Motion detected, try set recent to current
                     recent = gray
 
 
@@ -145,7 +162,7 @@ class MotionSensor(object):
 
     @staticmethod
     def get_best_contour(imgmask, threshold):
-        contours, hierarchy = cv2.findContours(imgmask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(imgmask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         best_area = threshold
         best_cnt = None
         for cnt in contours:

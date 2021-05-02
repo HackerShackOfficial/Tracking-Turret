@@ -3,10 +3,12 @@ import threading
 import atexit
 
 class StepperMotor(object):
-    def __init__(self):
+    def __init__(self, name):
+        self.thread_start = False
         self.pos = 0
         self.target = 0
         self.end = 0
+        self.name = name
         atexit.register(self.__end)
 
     def start_loop(self):
@@ -16,7 +18,7 @@ class StepperMotor(object):
         self.thread_started = True
 
     def set_target(self, target):
-        self.target = target
+        self.target = int(target)
         self.flag.set()
         
     def on_target(self):
@@ -29,7 +31,7 @@ class StepperMotor(object):
                 self.flag.wait()
             else:
                 self.step(1 if self.target - self.pos > 0 else -1)
-            time.sleep(100)
+            time.sleep(0.1)
                 
     def step(self, steps):
         self.pos += steps

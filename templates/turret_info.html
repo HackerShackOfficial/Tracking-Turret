@@ -1,0 +1,16 @@
+<h2>Motion Sensor</h2>
+<table>
+    <tr><th>State</th><td>{{turret.motion_sensor.state_string}}</td></tr>
+{% if turret.motion_sensor.state > 0 %}
+    <tr><th>Static count</th><td>{{turret.motion_sensor.static_count}}</td></tr>
+{% endif %}
+{% if turret.motion_sensor.state == 3 %}
+    <tr><th>Last Motion Centre</th><td>{{'%0.2f'|format(turret.motion_sensor.center_norm[0]|float)}}, {{'%0.2f'|format(turret.motion_sensor.center_norm[1]|float)}}</td></tr>
+{% endif %}
+</table>
+<h2>Stepper</h2>
+<table>
+    <tr><td></td><th>X</th><th>Y</th></tr>
+    <tr><th>Target</th><td>{{turret.stepper_x.target}}</td><td>{{turret.stepper_y.target}}</td></tr>
+    <tr><th>Position</th><td>{{turret.stepper_x.pos}}</td><td>{{turret.stepper_y.pos}}</td></tr>
+</table>

@@ -22,7 +22,7 @@ class Stepper(object):
         self.thread_started = True
         
     def set_target(self, target):
-        self.target = target
+        self.target = int(target)
         self.flag.set()
         
     def on_target(self):
