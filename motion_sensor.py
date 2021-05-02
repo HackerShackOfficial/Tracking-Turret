@@ -25,6 +25,11 @@ class MotionSensor(object):
         self.end = True
 
     def grab_image(self):
+        now = time.time()
+        if self.max_frame_rate - (now - self.last_frame_time) > 0:
+            time.sleep(self.max_frame_rate - (now - self.last_frame_time))
+        self.last_frame_time = time.time()
+
         grabbed, frame = self.camera.read()
         if not grabbed:
             raise FrameGrabException()
@@ -48,10 +53,6 @@ class MotionSensor(object):
         frame, candidate = self.grab_image()
         static_count = 0
         while static_count < 20 and not self.end:
-            now = time.time()
-            if self.max_frame_rate - (now - self.last_frame_time) > 0:
-                time.sleep(self.max_frame_rate - (now - self.last_frame_time))
-            self.last_frame_time = time.time()
             frame, gray = self.grab_image()
             diff = self.compare(candidate, gray)
 
