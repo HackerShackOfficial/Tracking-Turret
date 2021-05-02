@@ -15,7 +15,7 @@ def on_web_start():
         global turret
         turret = turret_with_config.start(turret)
     print("==============================================================================")
-    print("on_web_start")
+    print("on_web_start", __name__)
     print("==============================================================================")
     turret = turret_with_config.create()
     th = threading.Thread(target=thread).start()
@@ -36,6 +36,14 @@ def turret_img():
 def ping():
     return "PING"
 
+ti = 0
+
+@app.route("/turret_info")
+def turret_info():
+    global ti
+    ti += 1
+    return str(ti)
+
 def start_runner():
     # Ping webserver in separate thread so that on_web_start is called
     def thread():
@@ -51,7 +59,7 @@ def start_runner():
             time.sleep(1)
 
     print("PINGING web server")
-    t = threading.Thread(target=thread)
+    t = threading.Thread(target=thread, daemon=True)
     t.start()
 
 start_runner()

@@ -2,16 +2,28 @@
     <head>
         <link rel="stylesheet" href="static/turret.css">
         <script>
-            function refresh_image()
+            function update()
             {
                 var el = document.getElementById("ms_image");
                 el.src = "ms?t=" + new Date().getTime();
+
+                var x = new XMLHttpRequest();
+                x.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        document.getElementById("turret_info").innerHTML = this.responseText;
+                    }
+                };
+                x.open("GET", "turret_info", true);
+                x.send();
             }
         </script>
     </head>
-    <body onload="setInterval(refresh_image, 250)">
+    <body onload="setInterval(update, 250)">
         <div class="menu rounded">
             <h1>Turret</h1>
+            <div id="turret_info">
+
+            </div>
         </div>
         <img class="rounded ms_image" src="ms" id="ms_image" />
     </body>
