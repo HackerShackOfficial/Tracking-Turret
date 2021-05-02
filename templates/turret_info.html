@@ -16,7 +16,7 @@
 </table>
 <h2>Gun</h2>
 <table>
-    <tr><th width="50%">On Target</th><td>{{"YES" if turret.gun.on_target else "NO"}}</td></tr>
+    <tr><th width="50%">On Target</th><td>{{"YES" if turret.gun.on_target() else "NO"}}</td></tr>
     <tr><th>Friendly</th><td>{{"YES" if turret.gun.friendly else "NO"}}</td></tr>
     <tr><th>For when on Target</th><td>{{"YES" if turret.gun.fire_on_target else "NO"}}</td></tr>
     <tr><th>Firing</th><td>{{"YES" if turret.gun.firing else "NO"}}</td></tr>

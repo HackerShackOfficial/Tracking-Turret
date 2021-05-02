@@ -16,13 +16,31 @@
                 x.open("GET", "turret_info", true);
                 x.send();
             }
+
+            function on_check_change(cb)
+            {
+                var x = new XMLHttpRequest();
+                x.open("GET", cb.name+"?state="+cb.checked.toString(), true);
+                x.send();  
+            }
         </script>
     </head>
     <body onload="setInterval(update, 250)">
         <div class="menu rounded">
-            <h1>Turret</h1>
-            <div id="turret_info">
+            <h1>State</h1>
+            <div id="turret_info" class="rounded panel">
 
+            </div>
+            <h1>Config</h1>
+            <div class="rounded panel">
+                <h2>Motion Sensor</h2>
+                <table>
+                    <tr><th>Show Video</th><td><input type="checkbox" name="change_show_video" onchange="on_check_change(this);" /></td></tr>
+                </table>
+                <h2>Gun</h2>
+                <table>
+                    <tr><th>Friendly</th><td><input type="checkbox" name="change_friendly" onchange="on_check_change(this);" /></td></tr>
+                </table>
             </div>
         </div>
         <img class="rounded ms_image" src="ms" id="ms_image" />

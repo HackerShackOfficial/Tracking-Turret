@@ -41,6 +41,19 @@ def turret_info():
     global turret
     return flask.render_template("turret_info.html", turret=turret)
 
+@app.route("/change_friendly")
+def change_friendly():
+    state = flask.request.args.get("state") == "true"
+    turret.gun.friendly = state
+    return ""
+
+@app.route("/change_show_video")
+def change_show_video():
+    state = flask.request.args.get("state") == "true"
+    turret.motion_sensor.show_video = state
+    cv2.destroyAllWindows()
+    return ""
+
 def start_runner():
     # Ping webserver in separate thread so that on_web_start is called
     def thread():

@@ -17,6 +17,12 @@ body
     border: 1px solid limegreen;
 }
 
+.panel
+{
+    background-color: #004400;
+    padding:10px;
+}
+
 .menu
 {
     width: 300px;
@@ -39,4 +45,10 @@ body
 table
 {
     width:100%;
+}
+
+hr
+{
+    color:limegreen;
+    border: 1px solid limegreen;
 }
