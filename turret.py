@@ -5,12 +5,12 @@ try:
     from gun import Gun
     has_motors = True
 except:
-    import dummy
     has_motors = False
     print("***************************************************************")
     print("Failed to initialise Motors or GPIO.  Using dummy")
 from motion_sensor import MotionSensor
 import atexit
+import dummy
 
 class Turret(object):
     def __init__(self, motors_reversed, motor_range,
@@ -18,6 +18,8 @@ class Turret(object):
             trigger_pin = None,
             micro_pins = None, micro_pos = None,
             show_video = False):
+        global has_motors
+        
         self.friendly_mode = friendly_mode
         self.micro_pins = micro_pins
         self.micro_pos = micro_pos
@@ -25,13 +27,18 @@ class Turret(object):
 
         # create a default object, no changes to I2C address or frequency
         if has_motors:
-            mh = adafruit_motorkit.MotorKit()
-            GPIO.setmode(GPIO.BCM)
-            self.stepper_x = Stepper(mh, False, motors_reversed[0], "X")
-            self.stepper_y = Stepper(mh, True, motors_reversed[1], "Y")
-        else:
+            try:
+                mh = adafruit_motorkit.MotorKit()
+                GPIO.setmode(GPIO.BCM)
+                self.stepper_x = Stepper(mh, False, motors_reversed[0], "X")
+                self.stepper_y = Stepper(mh, True, motors_reversed[1], "Y")
+            except ValueError:
+                has_motors = False
+                
+        if not has_motors:
             self.stepper_x = dummy.StepperMotor("X")
             self.stepper_y = dummy.StepperMotor("Y")
+            
         atexit.register(self.__turn_off_motors)
 
         if has_motors:
