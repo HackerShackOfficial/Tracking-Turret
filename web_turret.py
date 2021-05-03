@@ -10,13 +10,11 @@ turret = None
 
 @app.before_first_request
 def on_web_start():
-    global turret, th
+    global turret, th, green_image
     def thread():
         global turret
         turret = turret_with_config.start(turret)
-    print("==============================================================================")
-    print("on_web_start", __name__)
-    print("==============================================================================")
+    green_image = False
     turret = turret_with_config.create()
     th = threading.Thread(target=thread).start()
 
@@ -26,8 +24,13 @@ def index():
 
 @app.route("/ms")
 def turret_img():
-    global turret
-    _, png = cv2.imencode(".png", turret.motion_sensor.last_image)
+    global turret, green_image
+    img = turret.motion_sensor.last_image
+    if green_image:
+        #img[:,:,1] = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img[:,:,0] = 0
+        img[:,:,2] = 0
+    _, png = cv2.imencode(".png", img)
     response = flask.make_response(png.tobytes())
     response.headers["Content-Type"] = "image/png"
     return response
@@ -52,6 +55,12 @@ def change_show_video():
     state = flask.request.args.get("state") == "true"
     turret.motion_sensor.show_video = state
     cv2.destroyAllWindows()
+    return ""
+
+@app.route("/green_image")
+def green_image():
+    global green_image
+    green_image = flask.request.args.get("state") == "true"
     return ""
 
 def start_runner():

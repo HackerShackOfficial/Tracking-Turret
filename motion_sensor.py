@@ -52,6 +52,7 @@ class MotionSensor(object):
         frame = imutils.resize(frame, width=500)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (21, 21), 0)
+
         return frame, gray
     
     def compare(self, base, current):
@@ -89,7 +90,8 @@ class MotionSensor(object):
                 candidate = gray
             print(self.static_count, "similar images.", diff_count)
 
-            cv2.putText(frame, str(self.static_count), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255))
+            cv2.putText(frame, str(self.static_count), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (240, 240, 240), thickness=2, lineType=cv2.LINE_AA)
+            cv2.putText(frame, str(self.static_count), (10, frame.shape[0]-30), cv2.FONT_HERSHEY_SIMPLEX, 1, (30, 30, 30), thickness=2, lineType=cv2.LINE_AA)
             self.callback_nomotion(frame)
             self.last_image = frame
             if self.show_video:
@@ -123,10 +125,10 @@ class MotionSensor(object):
                     self.center_norm = (2*(center[0]/frame.shape[1] - 0.5), 2*(center[1]/frame.shape[0] - 0.5))  # Range -1 to 1
                     
                     # Draw bounds and contour on frame
-                    cv2.drawContours(frame, c, -1, (0, 255, 255), 1)
-                    cv2.circle(frame, center, 15, (0, 0, 255), 1)
-                    cv2.line(frame, (center[0]-24, center[1]), (center[0]+24, center[1]), (0, 0, 255), 1)
-                    cv2.line(frame, (center[0], center[1]-24), (center[0], center[1]+24), (0, 0, 255), 1)
+                    cv2.drawContours(frame, c, -1, (10, 10, 10), 1)
+                    cv2.circle(frame, center, 15, (240, 240, 240), 1)
+                    cv2.line(frame, (center[0]-24, center[1]), (center[0]+24, center[1]), (240, 240, 240), 1)
+                    cv2.line(frame, (center[0], center[1]-24), (center[0], center[1]+24), (240, 240, 240), 1)
                     self.callback_motion(self.center_norm, frame)
 
                 # show the frame and record if the user presses a key
