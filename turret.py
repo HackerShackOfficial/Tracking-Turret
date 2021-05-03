@@ -68,9 +68,6 @@ class Turret(object):
         target_steps_x = self.motor_range[0] * motion_center[0]
         target_steps_y = self.motor_range[1] * motion_center[1]
 
-        print ("x: %s, y: %s" % (str(target_steps_x), str(target_steps_y)))
-        print ("current x: %s, current y: %s" % (str(self.stepper_x.pos), str(self.stepper_y.pos)))
-
         self.stepper_x.set_target(target_steps_x)
         self.stepper_y.set_target(target_steps_y)
         self.gun.set_fire_on_target(True)

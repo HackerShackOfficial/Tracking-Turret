@@ -32,7 +32,6 @@ class StepperMotor(object):
                 
     def step(self, steps):
         self.pos += steps
-        print((self.name, self.pos, self.target))
 
     def calibrate(self, micro_pin, micro_pos):
         pass

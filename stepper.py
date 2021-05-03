@@ -25,9 +25,6 @@ class Stepper(object):
         self.target = int(target)
         self.flag.set()
         
-    def on_target(self):
-        return abs(self.target - self.pos) < 2
-        
     def __loop(self):
         while not self.end:
             if (self.target == self.pos):
@@ -38,7 +35,6 @@ class Stepper(object):
                 
     def step(self, steps):
         self.pos += steps
-        print((self.name, self.pos, self.target))
         direction = stepper.FORWARD if (steps > 0) != self.reverse else stepper.BACKWARD
         for i in range(abs(steps)):
             self.motor.onestep(direction=direction, style=stepper.DOUBLE)

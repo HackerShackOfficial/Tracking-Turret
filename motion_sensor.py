@@ -87,7 +87,6 @@ class MotionSensor(object):
             else:
                 self.static_count = 0   # Motion detected, try current image as base
                 candidate = gray
-            print(self.static_count, "similar images.", diff_count)
 
             cv2.putText(frame, str(self.static_count), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (240, 240, 240), thickness=2, lineType=cv2.LINE_AA)
             cv2.putText(frame, str(self.static_count), (10, frame.shape[0]-30), cv2.FONT_HERSHEY_SIMPLEX, 1, (30, 30, 30), thickness=2, lineType=cv2.LINE_AA)
