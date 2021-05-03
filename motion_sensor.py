@@ -12,10 +12,9 @@ class MotionSensor(object):
     GOT_EMPTY_FRAME = 2
     TRACKING = 3
 
-    def __init__(self, callback_motion=None, callback_nomotion=None, camera_port=0, diag=False, show_video=False, max_frame_rate = 0.250):
+    def __init__(self, callback_motion=None, callback_nomotion=None, camera_port=0, show_video=False, max_frame_rate = 0.250):
         self.camera = cv2.VideoCapture(camera_port)
         self.camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)   # Reduce Lag
-        self.diag = diag
         self.end = False
         self.show_video = show_video
         self.callback_motion = callback_motion

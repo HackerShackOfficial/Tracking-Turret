@@ -63,6 +63,12 @@ def green_image():
     green_image = flask.request.args.get("state") == "true"
     return ""
 
+@app.route("/frame_rate")
+def frame_rate():
+    value = 1 / float(flask.request.args.get("value"))
+    turret.motion_sensor.max_frame_rate = value
+    return ""
+
 def start_runner():
     # Ping webserver in separate thread so that on_web_start is called
     def thread():

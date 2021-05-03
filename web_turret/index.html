@@ -2,27 +2,34 @@
     <head>
         <link rel="stylesheet" href="static/turret.css">
         <script>
-            function update()
-            {
-                var el = document.getElementById("ms_image");
-                el.src = "ms?t=" + new Date().getTime();
+function update()
+{
+    var el = document.getElementById("ms_image");
+    el.src = "ms?t=" + new Date().getTime();
 
-                var x = new XMLHttpRequest();
-                x.onreadystatechange = function() {
-                    if (this.readyState == 4 && this.status == 200) {
-                        document.getElementById("turret_info").innerHTML = this.responseText;
-                    }
-                };
-                x.open("GET", "turret_info", true);
-                x.send();
-            }
+    var x = new XMLHttpRequest();
+    x.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            document.getElementById("turret_info").innerHTML = this.responseText;
+        }
+    };
+    x.open("GET", "turret_info", true);
+    x.send();
+}
 
-            function on_check_change(cb)
-            {
-                var x = new XMLHttpRequest();
-                x.open("GET", cb.name+"?state="+cb.checked.toString(), true);
-                x.send();  
-            }
+function on_check_change(cb)
+{
+    var x = new XMLHttpRequest();
+    x.open("GET", cb.name+"?state="+cb.checked.toString(), true);
+    x.send();  
+}
+
+function on_input_change(i)
+{
+    var x = new XMLHttpRequest();
+    x.open("GET", i.name+"?value="+i.value.toString(), true);
+    x.send();  
+}
         </script>
     </head>
     <body onload="setInterval(update, 250)">
@@ -36,6 +43,7 @@
                 <h2>Motion Sensor</h2>
                 <table>
                     <tr><th>Show Video</th><td><input type="checkbox" name="change_show_video" onchange="on_check_change(this);" checked /></td></tr>
+                    <tr><th>Max Frame Rate (fr/s)</th><td><input type="number" name="frame_rate" onchange="on_input_change(this);" value="4" min="0.4" max="10" step="0.1" /></td></tr>
                 </table>
                 <h2>Gun</h2>
                 <table>
