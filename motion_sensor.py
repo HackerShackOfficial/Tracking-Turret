@@ -29,6 +29,8 @@ class MotionSensor(object):
         self.static_count = 0
         self.center_norm = (0,0)
 
+        self.image_width = 500
+
     def quit(self):
         self.end = True
 
@@ -48,7 +50,7 @@ class MotionSensor(object):
             raise FrameGrabException()
 
         # resize the frame, convert it to grayscale, and blur it
-        frame = imutils.resize(frame, width=500)
+        frame = imutils.resize(frame, width=self.image_width)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
@@ -69,6 +71,9 @@ class MotionSensor(object):
         self.static_count = 0
         while self.static_count < 20 and not self.end:
             frame, gray = self.grab_image()
+            if gray.shape != candidate.shape:   # Image width has changed restart
+                candidate = gray
+                self.static_count = 0
             diff = self.compare(candidate, gray)
 
             if self.show_video:
@@ -112,6 +117,8 @@ class MotionSensor(object):
             while not self.end:
                 # Find contour in difference between base and current
                 frame, gray = self.grab_image()
+                if gray.shape != base.shape:    # Image width has changed.  Get new base.
+                    base = self.get_empty_frame()
                 diff = self.compare(base, gray)
                 c = MotionSensor.get_best_contour(diff.copy(), 5000)
 

@@ -63,10 +63,18 @@ def green_image():
     green_image = flask.request.args.get("state") == "true"
     return ""
 
+@app.route("/image_width")
+def image_width():
+    value = int(flask.request.args.get("value"))
+    if value >= 50 and value <= 2000:
+        turret.motion_sensor.image_width = value
+    return ""
+
 @app.route("/frame_rate")
 def frame_rate():
     value = 1 / float(flask.request.args.get("value"))
-    turret.motion_sensor.max_frame_rate = value
+    if value >= 0.1 and value <= 2.5:
+        turret.motion_sensor.max_frame_rate = value
     return ""
 
 def start_runner():
