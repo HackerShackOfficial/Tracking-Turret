@@ -47,6 +47,10 @@ class Turret(object):
             self.gun = dummy.Gun(self.stepper_x, self.stepper_y, friendly_mode)
         self.motion_sensor = MotionSensor(self.__on_motion, self.__on_no_motion, show_video=show_video)
 
+    @property
+    def uses_dummy(self):
+        return not has_motors
+
     def calibrate(self):
         if self.micro_pins is None or self.micro_pos is None:
             print("No Microswitch pin specified.  Skipping calibration.")
