@@ -91,6 +91,20 @@ def img_threshold():
         turret.motion_sensor.threshold = value
     return ""
 
+@app.route("/static_count_limit_start")
+def static_count_limit_start():
+    value = int(flask.request.args.get("value"))
+    if value >= 2 and value <= 200:
+        turret.motion_sensor.static_count_limit_start = value
+    return ""
+
+@app.route("/static_count_limit_live")
+def static_count_limit_live():
+    value = int(flask.request.args.get("value"))
+    if value >= 2 and value <= 200:
+        turret.motion_sensor.static_count_limit_live = value
+    return ""
+
 def start_runner():
     # Ping webserver in separate thread so that on_web_start is called
     def thread():

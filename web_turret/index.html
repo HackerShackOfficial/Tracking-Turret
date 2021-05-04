@@ -47,6 +47,8 @@ function on_input_change(i)
                     <tr><th>Image Width</th><td><input type="number" name="image_width" onchange="on_input_change(this);" value="500" min="50" max="2000" /></td></tr>
                     <tr><th>Blur Radius</th><td><input type="number" name="blur_radius" onchange="on_input_change(this);" value="10" min="0" max="50" /></td></tr>
                     <tr><th>Threshold</th><td><input type="number" name="img_threshold" onchange="on_input_change(this);" value="10" min="1" max="200" /></td></tr>
+                    <tr><th>Frames to find static (start)</th><td><input type="number" name="static_count_limit_start" onchange="on_input_change(this);" value="20" min="2" max="200" /></td></tr>
+                    <tr><th>Frames to find static (live)</th><td><input type="number" name="static_count_limit_live" onchange="on_input_change(this);" value="40" min="2" max="200" /></td></tr>
                 </table>
                 <h2>Gun</h2>
                 <table>

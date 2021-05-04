@@ -32,6 +32,8 @@ class MotionSensor(object):
         self.image_width = 500
         self.blur_radius = 21
         self.threshold = 25
+        self.static_count_limit_start = 20
+        self.static_count_limit_live = 40
 
     def quit(self):
         self.end = True
@@ -71,7 +73,7 @@ class MotionSensor(object):
         self.state = MotionSensor.GETTING_EMPTY_FRAME
         frame, candidate = self.grab_image()
         self.static_count = 0
-        while self.static_count < 20 and not self.end:
+        while self.static_count < self.static_count_limit_start and not self.end:
             frame, gray = self.grab_image()
             if gray.shape != candidate.shape:   # Image width has changed restart
                 candidate = gray
@@ -153,7 +155,7 @@ class MotionSensor(object):
                 diff_count = cv2.countNonZero(diff)
                 if diff_count == 0:  # No motion
                     self.static_count += 1
-                    if  self.static_count > 40: # No motion for 40 frames
+                    if  self.static_count > self.static_count_limit_live: # No motion for 40 frames
                         # Set recent as new base
                         base = recent
                         recent = gray
