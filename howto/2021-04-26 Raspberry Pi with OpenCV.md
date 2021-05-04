@@ -95,3 +95,9 @@ Under "Interfaces", Enable Camera.  This will require a reboot.
 ```
 sudo pip3 install adafruit-circuitpython-motorkit
 ```
+
+# NeoPixel Libraries
+```
+sudo pip3 install rpi_ws281x adafruit-circuitpython-neopixel
+sudo python3 -m pip install --force-reinstall adafruit-blinka
+```
