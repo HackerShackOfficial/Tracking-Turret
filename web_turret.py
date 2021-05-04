@@ -77,6 +77,20 @@ def frame_rate():
         turret.motion_sensor.max_frame_rate = value
     return ""
 
+@app.route("/blur_radius")
+def blur_radius():
+    value = int(flask.request.args.get("value"))
+    if value >= 0 and value <= 50:
+        turret.motion_sensor.blur_radius = value*2+1
+    return ""
+
+@app.route("/img_threshold")
+def img_threshold():
+    value = int(flask.request.args.get("value"))
+    if value >= 1 and value <= 200:
+        turret.motion_sensor.threshold = value
+    return ""
+
 def start_runner():
     # Ping webserver in separate thread so that on_web_start is called
     def thread():

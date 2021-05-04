@@ -30,6 +30,8 @@ class MotionSensor(object):
         self.center_norm = (0,0)
 
         self.image_width = 500
+        self.blur_radius = 21
+        self.threshold = 25
 
     def quit(self):
         self.end = True
@@ -52,13 +54,13 @@ class MotionSensor(object):
         # resize the frame, convert it to grayscale, and blur it
         frame = imutils.resize(frame, width=self.image_width)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        gray = cv2.GaussianBlur(gray, (21, 21), 0)
+        gray = cv2.GaussianBlur(gray, (self.blur_radius, self.blur_radius), 0)
 
         return frame, gray
     
     def compare(self, base, current):
         delta = cv2.absdiff(base, current)
-        tst = cv2.threshold(delta, 25, 255, cv2.THRESH_BINARY)[1]
+        tst = cv2.threshold(delta, self.threshold, 255, cv2.THRESH_BINARY)[1]
         return cv2.dilate(tst, None, iterations=2)
 
     # Get initial "empty" image.
