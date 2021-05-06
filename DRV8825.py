@@ -90,11 +90,11 @@ class DRV8825():
     FORWARD = 0
     BACKWARD = 1
 
-    def set_direction(this, dir):
-            self.digital_write(self.enable_pin, 0)
-            self.digital_write(self.dir_pin, dir)
+    def set_direction(self, dir):
+        self.digital_write(self.enable_pin, 0)
+        self.digital_write(self.dir_pin, dir)
 
-    def step(this, stepdelay=0.005):
+    def step(self, stepdelay=0.005):
         self.digital_write(self.step_pin, True)
         time.sleep(stepdelay)
         self.digital_write(self.step_pin, False)
