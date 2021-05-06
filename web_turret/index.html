@@ -83,9 +83,11 @@ function on_override_check(cb)
                 </table>
             </div>
             <h1>Target Override</h1>
-            Override <input type="checkbox" onchange="on_override_check(this)" /><br/>
-            <input type="range" id="override_x" min="-100" max="100" disabled="true" onchange="on_override_change()" /><br/>
-            <input type="range" id="override_y" min="-100" max="100" disabled="true" onchange="on_override_change()" />
+            <div class="rounded panel">
+                Override <input type="checkbox" onchange="on_override_check(this)" /><br/>
+                <input type="range" id="override_x" min="-100" max="100" disabled="true" onchange="on_override_change()" /><br/>
+                <input type="range" id="override_y" min="-100" max="100" disabled="true" onchange="on_override_change()" />
+            </div>
         </div>
         <img class="rounded ms_image" src="ms" id="ms_image" />
     </body>
