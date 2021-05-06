@@ -40,11 +40,18 @@ class DRV8825():
         (2) stepformat
             ('fullstep', 'halfstep', '1/4step', '1/8step', '1/16step', '1/32step')
         """
+        microstep = ('fullstep',
+                     'halfstep',
+                     '1/4step',
+                     '1/8step',
+                     '1/16step',
+                     '1/32step')
+        step = microstep.index[stepformat]
 
         print( "Control mode:",mode)
         if (mode == ControlMode[1]):
             print( "set pins")
-            self.set_micro_step(stepformat)
+            self.set_micro_step(step)
 
     STEP_ONE = 0
     STEP_HALF = 1
@@ -53,12 +60,12 @@ class DRV8825():
     STEP_SIXTEENTH = 4
     STEP_1_32 = 5
     def set_micro_step(self, step):
-        microstep = {'fullstep': (0, 0, 0),
-                     'halfstep': (1, 0, 0),
-                     '1/4step': (0, 1, 0),
-                     '1/8step': (1, 1, 0),
-                     '1/16step': (0, 0, 1),
-                     '1/32step': (1, 0, 1)}
+        microstep = ((0, 0, 0),
+                     (1, 0, 0),
+                     (0, 1, 0),
+                     (1, 1, 0),
+                     (0, 0, 1),
+                     (1, 0, 1))
         self.digital_write(self.mode_pins, microstep[step])
         
     def TurnStep(self, Dir, steps, stepdelay=0.005):
