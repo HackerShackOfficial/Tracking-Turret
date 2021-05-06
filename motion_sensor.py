@@ -108,6 +108,7 @@ class MotionSensor(object):
         cv2.destroyAllWindows()
         self.state = MotionSensor.GOT_EMPTY_FRAME
 
+        print("EMPTY", candidate.shape)
         return candidate
     
     def find_motion(self):
@@ -123,6 +124,8 @@ class MotionSensor(object):
                 frame, gray = self.grab_image()
                 if gray.shape != base.shape:    # Image width has changed.  Get new base.
                     base = self.get_empty_frame()
+                    recent = base
+                print("Compare", base.shape, gray.shape)
                 diff = self.compare(base, gray)
                 c = MotionSensor.get_best_contour(diff.copy(), 5000)
 

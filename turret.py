@@ -1,7 +1,6 @@
 try:
     import adafruit_motorkit
     import RPi.GPIO as GPIO
-    from stepper import Stepper
     from gun import Gun
     has_motors = True
 except:
@@ -13,7 +12,8 @@ import atexit
 import dummy
 
 class Turret(object):
-    def __init__(self, motors_reversed, motor_range,
+    def __init__(self, motor_range,
+            steppers,
             friendly_mode=True,
             trigger_pin = None,
             micro_pins = None, micro_pos = None,
@@ -25,19 +25,8 @@ class Turret(object):
         self.micro_pos = micro_pos
         self.motor_range = motor_range
 
-        # create a default object, no changes to I2C address or frequency
-        if has_motors:
-            try:
-                mh = adafruit_motorkit.MotorKit()
-                GPIO.setmode(GPIO.BCM)
-                self.stepper_x = Stepper(mh, False, motors_reversed[0], "X")
-                self.stepper_y = Stepper(mh, True, motors_reversed[1], "Y")
-            except ValueError:
-                has_motors = False
-                
-        if not has_motors:
-            self.stepper_x = dummy.StepperMotor("X")
-            self.stepper_y = dummy.StepperMotor("Y")
+        self.stepper_x = steppers[0]
+        self.stepper_y = steppers[1]
             
         atexit.register(self.__turn_off_motors)
 

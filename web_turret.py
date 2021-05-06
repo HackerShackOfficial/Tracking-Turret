@@ -26,6 +26,8 @@ def index():
 def turret_img():
     global turret, green_image
     img = turret.motion_sensor.last_image
+    if img is None:
+        return flask.send_from_directory('web_turret', 'no_image.png')
     if green_image:
         #img[:,:,1] = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         img[:,:,0] = 0
