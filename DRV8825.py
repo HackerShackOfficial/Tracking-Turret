@@ -41,9 +41,9 @@ class DRV8825():
             ('fullstep', 'halfstep', '1/4step', '1/8step', '1/16step', '1/32step')
         """
 
-        print "Control mode:",mode
+        print( "Control mode:",mode)
         if (mode == ControlMode[1]):
-            print "set pins"
+            print( "set pins")
             self.set_micro_step(stepformat)
 
     STEP_ONE = 0
@@ -63,20 +63,20 @@ class DRV8825():
         
     def TurnStep(self, Dir, steps, stepdelay=0.005):
         if (Dir == MotorDir[0]):
-            print "forward"
+            print( "forward")
             self.set_direction(0)
         elif (Dir == MotorDir[1]):
-            print "backward"
+            print( "backward")
             self.set_direction(1)
         else:
-            print "the dir must be : 'forward' or 'backward'"
+            print( "the dir must be : 'forward' or 'backward'")
             self.digital_write(self.enable_pin, 1)
             return
 
         if (steps == 0):
             return
             
-        print "turn step:",steps
+        print( "turn step:",steps)
         for i in range(steps):
             this.step(stepdelay)
 
