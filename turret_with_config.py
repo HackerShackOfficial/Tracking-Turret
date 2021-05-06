@@ -1,5 +1,12 @@
+try:
+    from config import *
+except:
+    import sys
+    print("*************************************************************************************************************")
+    print("Could not import config.  Copy config.py.removeextension to config.py and enter the correct hardware options.")
+    print("*************************************************************************************************************")
+    sys.exit()
 from turret import Turret
-from config import *
 
 def create():
     if STEPPER_CONFIG == ADA_FRUIT_STEPPERS:
