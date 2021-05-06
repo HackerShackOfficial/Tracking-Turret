@@ -107,6 +107,16 @@ def static_count_limit_live():
         turret.motion_sensor.static_count_limit_live = value
     return ""
 
+@app.route("/override")
+def override():
+    if (flask.request.args.get("x") == "OFF"):
+        turret.override_motion = False
+    else:
+        x = int(flask.request.args.get("x")) / 100
+        y = int(flask.request.args.get("y")) / 100
+        turret.override_target(x, y)
+    return ""
+
 def start_runner():
     # Ping webserver in separate thread so that on_web_start is called
     def thread():

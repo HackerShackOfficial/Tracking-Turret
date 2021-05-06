@@ -27,6 +27,8 @@ class Turret(object):
 
         self.stepper_x = steppers[0]
         self.stepper_y = steppers[1]
+
+        self.override_motion = False
             
         atexit.register(self.__turn_off_motors)
 
@@ -58,17 +60,19 @@ class Turret(object):
         self.motion_sensor.find_motion()
 
     def __on_motion(self, motion_center, frame):
-        target_steps_x = self.motor_range[0] * motion_center[0]
-        target_steps_y = self.motor_range[1] * motion_center[1]
+        if not self.override_motion:
+            target_steps_x = self.motor_range[0] * motion_center[0]
+            target_steps_y = self.motor_range[1] * motion_center[1]
 
-        self.stepper_x.set_target(target_steps_x)
-        self.stepper_y.set_target(target_steps_y)
-        self.gun.set_fire_on_target(True)
-        
+            self.stepper_x.set_target(target_steps_x)
+            self.stepper_y.set_target(target_steps_y)
+            self.gun.set_fire_on_target(True)
+
     def __on_no_motion(self, frame):
-        self.stepper_x.set_target(0)
-        self.stepper_y.set_target(0)
-        self.gun.set_fire_on_target(False)
+        if not self.override_motion:
+            self.stepper_x.set_target(0)
+            self.stepper_y.set_target(0)
+            self.gun.set_fire_on_target(False)
 
     def __turn_off_motors(self):
         # TODO: FIX THIS
@@ -79,3 +83,8 @@ class Turret(object):
         self.mh.getMotor(4).run(MotorKit.RELEASE)
         '''
         pass
+
+    def override_target(self, x, y):
+        self.override_motion = True
+        self.stepper_x.set_target(x * self.motor_range[0])
+        self.stepper_y.set_target(y * self.motor_range[1])

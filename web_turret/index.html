@@ -30,6 +30,29 @@ function on_input_change(i)
     x.open("GET", i.name+"?value="+i.value.toString(), true);
     x.send();  
 }
+
+function on_override_change()
+{
+    var x = new XMLHttpRequest();
+    x.open("GET", "override?x="+document.getElementById("override_x").value+"&y="+document.getElementById("override_y").value, true);
+    x.send();  
+}
+
+function on_override_check(cb)
+{
+    document.getElementById('override_x').disabled  = !cb.checked;
+    document.getElementById('override_y').disabled  = !cb.checked;
+
+    if (cb.checked)
+        on_override_change();
+    else
+    {
+        var x = new XMLHttpRequest();
+        x.open("GET", "override?x=OFF", true);
+        x.send(); 
+    }
+}
+
         </script>
     </head>
     <body onload="setInterval(update, 250)">
@@ -59,6 +82,10 @@ function on_input_change(i)
                     <tr><th>Green Image</th><td><input type="checkbox" name="green_image" onchange="on_check_change(this);" /></td></tr>
                 </table>
             </div>
+            <h1>Target Override</h1>
+            Override <input type="checkbox" onchange="on_override_check(this)" /><br/>
+            <input type="range" id="override_x" min="-100" max="100" disabled="true" onchange="on_override_change()" /><br/>
+            <input type="range" id="override_y" min="-100" max="100" disabled="true" onchange="on_override_change()" />
         </div>
         <img class="rounded ms_image" src="ms" id="ms_image" />
     </body>
