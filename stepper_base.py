@@ -18,25 +18,36 @@ class StepperBase(object):
         self.thread.start()
         self.thread_started = True
 
+    def __get_flag(self):
+        return self.flag
+
+    def __get_thread(self):
+        return self.thread
+
     def set_target(self, target):
         self.target = int(target)
-        self.flag.set()
+        self.__get_flag.set()
         
     def on_target(self):
         return abs(self.target - self.pos) < 2
-        
+    
+    def __update():
+        if (abs(self.target - self.pos) >= 1):
+            self.step(self.forward_dir if self.target - self.pos > 0 else -self.forward_dir)
+            return True
+        else:
+            return False
+
     def __loop(self):
         while not self.end:
-            if (abs(self.target - self.pos) >= 1):
-                self.step(self.forward_dir if self.target - self.pos > 0 else -self.forward_dir)
-            else:
+            if not self.__update():
                 self.flag.wait()
         
     def __end(self):
         self.end = True
         if self.thread_started:
-            self.flag.set()
-            self.thread.join()
+            self.__get_flag().set()
+            self.__get_thread().join()
 
 class StepperReal(StepperBase):
     def __init__(self, name, reverse):
