@@ -26,7 +26,7 @@ class StepperBase(object):
 
     def set_target(self, target):
         self.target = int(target)
-        self.__get_flag.set()
+        self.__get_flag().set()
         
     def on_target(self):
         return abs(self.target - self.pos) < 2
