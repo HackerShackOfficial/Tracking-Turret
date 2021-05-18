@@ -22,7 +22,7 @@ class Stepper(StepperReal):
         # Tuples (thread, flag, list of Steppers)
 
     def start_loop(self):
-        if not Stepper.threads.has_key(self.kit):
+        if self.kit not in Stepper.threads:
             Stepper.end = False
             flag = threading.Event()
             steppers = [self]
