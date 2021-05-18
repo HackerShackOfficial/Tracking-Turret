@@ -42,8 +42,8 @@ class Stepper(StepperReal):
             if not action:
                 flag.wait()
 
-    def __get_flag(self):
+    def _get_flag(self):
         return Stepper.threads[self.kit][1]
 
-    def __get_thread(self):
+    def _get_thread(self):
         return Stepper.threads[self.kit][0]
