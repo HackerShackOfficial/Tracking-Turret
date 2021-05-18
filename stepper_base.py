@@ -31,7 +31,7 @@ class StepperBase(object):
     def on_target(self):
         return abs(self.target - self.pos) < 2
     
-    def update():
+    def update(self):
         if (abs(self.target - self.pos) >= 1):
             self.step(self.forward_dir if self.target - self.pos > 0 else -self.forward_dir)
             return True
