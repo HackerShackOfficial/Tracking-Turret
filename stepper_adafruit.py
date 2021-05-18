@@ -37,7 +37,7 @@ class Stepper(StepperReal):
         while not Stepper.end:
             action = False
             for s in steppers:
-                if s.__update():
+                if s.update():
                     action = True
             if not action:
                 flag.wait()
