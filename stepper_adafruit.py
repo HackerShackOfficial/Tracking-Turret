@@ -3,6 +3,8 @@ import adafruit_motorkit
 from adafruit_motor import stepper
 from stepper_base import StepperReal
 import threading
+import time
+import config
 
 # Adafruit Motor Hat
 class Stepper(StepperReal):
@@ -39,8 +41,11 @@ class Stepper(StepperReal):
             for s in steppers:
                 if s.update():
                     action = True
-            if not action:
-                flag.wait()
+            if action:
+                if config.STEPPER_DELAY:
+                    time.sleep(config.STEPPER_DELAY)
+            else:
+                flag.wait() # No action wait for event flag (new target)
 
     def _get_flag(self):
         return Stepper.threads[self.kit][1]
