@@ -37,6 +37,7 @@ class Gun(object):
     def set_fire_on_target(self, fire_on_target):
         self.fire_on_target = fire_on_target
     
+    @property
     def on_target(self):
         return self.x.on_target() and self.y.on_target()
 

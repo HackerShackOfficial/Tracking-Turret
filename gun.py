@@ -31,7 +31,6 @@ class Gun(object):
 
     @property
     def on_target(self):
-        
         return abs(self.x.target - self.x.pos) < 2 and abs(self.y.target - self.y.pos) < 2
     
     def __loop(self):
