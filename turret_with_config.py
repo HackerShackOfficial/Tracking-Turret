@@ -30,7 +30,7 @@ def create():
         trigger_pin = TRIGGER_PIN,
         micro_pins = MICRO_PINS, micro_pos = MICRO_POS,
         motor_range = MOTORS_RANGE,
-        show_video=True)
+        show_video = SHOW_VIDEO)
     return turret
 
 def start(turret):

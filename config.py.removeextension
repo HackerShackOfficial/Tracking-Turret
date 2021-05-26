@@ -24,3 +24,6 @@ if STEPPER_CONFIG == WAVESHARE_STEPPERS:
     Y_MODE_PINS =   (21, 22, 27)
 
 STEPPER_DELAY = 0
+    # Delay between steps in s.
+
+SHOW_VIDEO = False
