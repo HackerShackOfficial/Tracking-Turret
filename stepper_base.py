@@ -10,7 +10,7 @@ class StepperBase(object):
         self.end = 0
         self.name = name
         atexit.register(self.__end)
-        self.forward_dir = -1 if reverse else 1
+        self.reverse = reverse
 
     def start_loop(self):
         self.flag = threading.Event()
@@ -33,7 +33,7 @@ class StepperBase(object):
     
     def update(self):
         if (abs(self.target - self.pos) >= 1):
-            self.step(self.forward_dir if self.target - self.pos > 0 else -self.forward_dir)
+            self.step(1 if self.target - self.pos > 0 else -1)
             return True
         else:
             return False

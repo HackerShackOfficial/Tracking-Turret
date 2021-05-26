@@ -13,7 +13,7 @@ class Stepper(StepperReal):
                 
     def step(self, steps):
         self.pos += steps
-        direction = stepper.FORWARD if steps > 0 else stepper.BACKWARD
+        direction = stepper.FORWARD if (steps > 0) != self.reverse else stepper.BACKWARD
         for i in range(abs(steps)):
             self.motor.onestep(direction=direction, style=stepper.DOUBLE)
 

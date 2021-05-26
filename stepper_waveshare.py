@@ -12,7 +12,7 @@ class Stepper(StepperReal):
                 
     def step(self, steps):
         self.pos += steps
-        direction = DRV8825.FORWARD if steps > 0 else DRV8825.BACKWARD
+        direction = DRV8825.FORWARD if (steps > 0) != self.reverse else DRV8825.BACKWARD
         if direction != self.current_direction:
             self.motor.set_direction(direction)
             self.current_direction = direction
