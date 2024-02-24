@@ -13,7 +13,7 @@ import contextlib
 
 
 import imutils
-##import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 from Adafruit_MotorHAT import Adafruit_MotorHAT, Adafruit_DCMotor, Adafruit_StepperMotor
 
 
@@ -53,7 +53,7 @@ class VideoUtils(object):
     Helper functions for video utilities.
     """
     @staticmethod
-    def live_video(camera_port=1):
+    def live_video(camera_port=0):
         """
         Opens a window with live video.
         :param camera:
@@ -77,7 +77,7 @@ class VideoUtils(object):
         cv2.destroyAllWindows()
 
     @staticmethod
-    def find_motion(callback, camera_port=1, show_video=False):
+    def find_motion(callback, camera_port=0, show_video=False):
 
         camera = cv2.VideoCapture(camera_port)
         time.sleep(0.25)
@@ -179,13 +179,13 @@ class Turret(object):
         self.friendly_mode = friendly_mode
         #
         # # create a default object, no changes to I2C address or frequency
-        # self.mh = Adafruit_MotorHAT()
-        # atexit.register(self.__turn_off_motors)
-        #
-        # # Stepper motor 1
-        # self.sm_x = self.mh.getStepper(200, 1)      # 200 steps/rev, motor port #1
-        # self.sm_x.setSpeed(5)                       # 5 RPM
-        # self.current_x_steps = 0
+        self.mh = Adafruit_MotorHAT()
+        atexit.register(self.__turn_off_motors)
+
+        # Stepper motor 1
+        self.sm_x = self.mh.getStepper(200, 1)      # 200 steps/rev, motor port #1
+        self.sm_x.setSpeed(5)                       # 5 RPM
+        self.current_x_steps = 0
         #
         # # Stepper motor 2
         # self.sm_y = self.mh.getStepper(200, 2)      # 200 steps/rev, motor port #2
@@ -293,18 +293,18 @@ class Turret(object):
         t_fire = threading.Thread()
 
         # # # move x
-        # if (target_steps_x - self.current_x_steps) > 0:
-        #     self.current_x_steps += 1
-        #     if MOTOR_X_REVERSED:
-        #         t_x = threading.Thread(target=Turret.move_forward, args=(self.sm_x, 2,))
-        #     else:
-        #         t_x = threading.Thread(target=Turret.move_backward, args=(self.sm_x, 2,))
-        # elif (target_steps_x - self.current_x_steps) < 0:
-        #     self.current_x_steps -= 1
-        #     if MOTOR_X_REVERSED:
-        #         t_x = threading.Thread(target=Turret.move_backward, args=(self.sm_x, 2,))
-        #     else:
-        #         t_x = threading.Thread(target=Turret.move_forward, args=(self.sm_x, 2,))
+        if (target_steps_x - self.current_x_steps) > 0:
+            self.current_x_steps += 1
+            if MOTOR_X_REVERSED:
+                t_x = threading.Thread(target=Turret.move_forward, args=(self.sm_x, 2,))
+            else:
+                t_x = threading.Thread(target=Turret.move_backward, args=(self.sm_x, 2,))
+        elif (target_steps_x - self.current_x_steps) < 0:
+            self.current_x_steps -= 1
+            if MOTOR_X_REVERSED:
+                t_x = threading.Thread(target=Turret.move_backward, args=(self.sm_x, 2,))
+            else:
+                t_x = threading.Thread(target=Turret.move_forward, args=(self.sm_x, 2,))
 
         # # move y
         # if (target_steps_y - self.current_y_steps) > 0:
@@ -326,12 +326,12 @@ class Turret(object):
         #         t_fire = threading.Thread(target=Turret.fire)
 
         t_x.start()
-        t_y.start()
-        t_fire.start()
+        #t_y.start()
+        #t_fire.start()
 
         t_x.join()
-        t_y.join()
-        t_fire.join()
+        #t_y.join()
+        #t_fire.join()
 
     def interactive(self):
         """
@@ -414,8 +414,6 @@ class Turret(object):
 
 if __name__ == "__main__":
     t = Turret(friendly_mode=False)
-
-    #user_input = raw_input("Choose an input mode: (1) Motion Detection, (2) Interactive\n")
     user_input = input("Choose an input mode: (1) Motion Detection, (2) Interactive\n")
 
     if user_input == "1":
