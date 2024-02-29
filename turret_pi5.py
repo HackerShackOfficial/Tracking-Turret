@@ -8,15 +8,16 @@ import thread
 import threading
 import atexit
 import sys
-##import termios
+import termios
 import contextlib
 
 
 import imutils
-import RPi.GPIO as GPIO
-from Adafruit_MotorHAT import Adafruit_MotorHAT, Adafruit_DCMotor, Adafruit_StepperMotor
-
-
+##import RPi.GPIO as GPIO  # This will be replaced with digitalio for Blinka
+#from adafruit_motor import stepper as STEPPER
+#import digitalio
+import board
+from adafruit_servokit import ServoKit
 
 ### User Parameters ###
 
@@ -26,10 +27,18 @@ MOTOR_Y_REVERSED = False
 MAX_STEPS_X = 30
 MAX_STEPS_Y = 15
 
-RELAY_PIN = 22
+RELAY_PIN = board.D22  # Adjusted for Blinka
 
 #######################
-
+# Setup for Adafruit Blinka
+# Especifica el numero de canales del HAT de servos. Por ejemplo, 16 para el Servo HAT de 16 canales.
+kit = ServoKit(channels=16)
+# Selecciona el canal al que esta conectado el servo. Los canales comienzan desde 0.
+servo_channel = 1
+kit.servo[servo_channel].angle = 180
+time.sleep(1)
+#relay = digitalio.DigitalInOut(RELAY_PIN)
+#relay.direction = digitalio.Direction.OUTPUT
 
 @contextlib.contextmanager
 def raw_mode(file):
@@ -38,14 +47,14 @@ def raw_mode(file):
     :param file:
     :return:
     """
-    # old_attrs = termios.tcgetattr(file.fileno())
-    # new_attrs = old_attrs[:]
-    # new_attrs[3] = new_attrs[3] & ~(termios.ECHO | termios.ICANON)
-    # try:
-    #     termios.tcsetattr(file.fileno(), termios.TCSADRAIN, new_attrs)
-    #     yield
-    # finally:
-    #     termios.tcsetattr(file.fileno(), termios.TCSADRAIN, old_attrs)
+    old_attrs = termios.tcgetattr(file.fileno())
+    new_attrs = old_attrs[:]
+    new_attrs[3] = new_attrs[3] & ~(termios.ECHO | termios.ICANON)
+    try:
+        termios.tcsetattr(file.fileno(), termios.TCSADRAIN, new_attrs)
+        yield
+    finally:
+        termios.tcsetattr(file.fileno(), termios.TCSADRAIN, old_attrs)
 
 
 class VideoUtils(object):
@@ -179,13 +188,14 @@ class Turret(object):
         self.friendly_mode = friendly_mode
         #
         # # create a default object, no changes to I2C address or frequency
-        self.mh = Adafruit_MotorHAT()
-        atexit.register(self.__turn_off_motors)
+        self.kit = kit
+        #atexit.register(self.__turn_off_motors)
 
         # Stepper motor 1
-        self.sm_x = self.mh.getStepper(200, 1)      # 200 steps/rev, motor port #1
-        self.sm_x.setSpeed(5)                       # 5 RPM
-        self.current_x_steps = 0
+        #self.sm_x = self.mh.getStepper(200, 1)      # 200 steps/rev, motor port #1
+        self.sm_x = self.kit.servo[servo_channel].angle = 0
+        #self.sm_x.setSpeed(5)                       # 5 RPM
+        #self.current_x_steps = 0
         #
         # # Stepper motor 2
         # self.sm_y = self.mh.getStepper(200, 2)      # 200 steps/rev, motor port #2
@@ -202,9 +212,9 @@ class Turret(object):
         Waits for input to calibrate the turret's axis
         :return:
         """
-        print("Please calibrate the tilt of the gun so that it is level. Commands: (w) moves up, " \
-              "(s) moves down. Press (enter) to finish.\n")
-        self.__calibrate_y_axis()
+        # print("Please calibrate the tilt of the gun so that it is level. Commands: (w) moves up, " \
+        #       "(s) moves down. Press (enter) to finish.\n")
+        # self.__calibrate_y_axis()
 
         print("Please calibrate the yaw of the gun so that it aligns with the camera. Commands: (a) moves left, " \
               "(d) moves right. Press (enter) to finish.\n")
@@ -226,14 +236,14 @@ class Turret(object):
 
                     elif ch == "a":
                         if MOTOR_X_REVERSED:
-                            Turret.move_backward(self.sm_x, 5)
+                            Turret.move_backward(self.kit, 45)
                         else:
-                            Turret.move_forward(self.sm_x, 5)
+                            Turret.move_forward(self.kit, 90)
                     elif ch == "d":
                         if MOTOR_X_REVERSED:
-                            Turret.move_forward(self.sm_x, 5)
+                            Turret.move_forward(self.kit, 5)
                         else:
-                            Turret.move_backward(self.sm_x, 5)
+                            Turret.move_backward(self.kit, 5)
                     elif ch == "\n":
                         break
 
@@ -296,15 +306,15 @@ class Turret(object):
         if (target_steps_x - self.current_x_steps) > 0:
             self.current_x_steps += 1
             if MOTOR_X_REVERSED:
-                t_x = threading.Thread(target=Turret.move_forward, args=(self.sm_x, 2,))
+                t_x = threading.Thread(target=Turret.move_forward, args=(self.sm_x, 90,))
             else:
-                t_x = threading.Thread(target=Turret.move_backward, args=(self.sm_x, 2,))
+                t_x = threading.Thread(target=Turret.move_backward, args=(self.sm_x, 180,))
         elif (target_steps_x - self.current_x_steps) < 0:
             self.current_x_steps -= 1
             if MOTOR_X_REVERSED:
-                t_x = threading.Thread(target=Turret.move_backward, args=(self.sm_x, 2,))
+                t_x = threading.Thread(target=Turret.move_backward, args=(self.sm_x, 180,))
             else:
-                t_x = threading.Thread(target=Turret.move_forward, args=(self.sm_x, 2,))
+                t_x = threading.Thread(target=Turret.move_forward, args=(self.sm_x, 45,))
 
         # # move y
         # if (target_steps_y - self.current_y_steps) > 0:
@@ -339,8 +349,8 @@ class Turret(object):
         :return:
         """
 
-        Turret.move_forward(self.sm_x, 1)
-        Turret.move_forward(self.sm_y, 1)
+        Turret.move_forward(self.sm_x, 5)
+        Turret.move_forward(self.sm_y, 5)
 
         print('Commands: Pivot with (a) and (d). Tilt with (w) and (s). Exit with (q)\n')
         with raw_mode(sys.stdin):
@@ -383,24 +393,26 @@ class Turret(object):
         #GPIO.output(RELAY_PIN, GPIO.LOW)
 
     @staticmethod
-    def move_forward(motor, steps):
+    def move_forward(kit, angle):
         """
         Moves the stepper motor forward the specified number of steps.
         :param motor:
         :param steps:
         :return:
         """
-        motor.step(steps, Adafruit_MotorHAT.FORWARD,  Adafruit_MotorHAT.INTERLEAVE)
+        kit.servo[servo_channel].angle = angle
+        #motor.step(steps, Adafruit_MotorHAT.FORWARD,  Adafruit_MotorHAT.INTERLEAVE)
 
     @staticmethod
-    def move_backward(motor, steps):
+    def move_backward(kit, angle):
         """
         Moves the stepper motor backward the specified number of steps
         :param motor:
         :param steps:
         :return:
         """
-        motor.step(steps, Adafruit_MotorHAT.BACKWARD, Adafruit_MotorHAT.INTERLEAVE)
+        kit.servo[servo_channel].angle = angle
+        #motor.step(steps, Adafruit_MotorHAT.BACKWARD, Adafruit_MotorHAT.INTERLEAVE)
 
     def __turn_off_motors(self):
         """
