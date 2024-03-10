@@ -17,14 +17,16 @@ import RPi.GPIO as GPIO
 MOTOR_X_REVERSED = False
 MOTOR_Y_REVERSED = False
 
-MAX_STEPS_X = 25 #importante, debe coincidir con los if de los angulos
+MAX_STEPS_X = 19 #importante, debe coincidir con los if de los angulos
 MAX_STEPS_Y = 4
 
 RELAY_PIN = 23  # Adjusted for Blinka
 
 #######################
 # Setup for Adafruit Blinka
-servoX =gpiozero.AngularServo(18,initial_angle=90, min_angle=0, max_angle=180, min_pulse_width=0.0005, max_pulse_width=0.0025)
+servoX =gpiozero.AngularServo(18,initial_angle=0, min_angle=0, max_angle=180, min_pulse_width=0.0005, max_pulse_width=0.0025)
+servoY =gpiozero.AngularServo(24,initial_angle=80, min_angle=0, max_angle=180, min_pulse_width=0.0005, max_pulse_width=0.0025)
+
 relay = gpiozero.OutputDevice(RELAY_PIN, active_high=False, initial_value=False)
 #relay = digitalio.DigitalInOut(RELAY_PIN)
 #relay.direction = digitalio.Direction.OUTPUT
@@ -166,15 +168,31 @@ class Turret(object):
         self.friendly_mode = friendly_mode
         #
         # Stepper motor 1
+        #Usar esto angulos para el arranque del servoX
         self.current_x_steps = 0
-        self.servoX = servoX
-        #self.servoX =
-        servoX.angle = 0
-        sleep(1)
-        servoX.angle = 180
+        self.servoX = servoX                
+        servoX.angle = 45
         sleep(1)
         servoX.angle = 90
         sleep(1)
+        servoX.angle = 135
+        sleep(1)
+        servoX.angle = 90
+        sleep(1)
+        
+        # Stepper motor 2
+        #Usar esto angulos para el arranque del servoY
+        self.current_y_steps = 0
+        self.servoY = servoY                
+        servoY.angle = 60
+        sleep(1)
+        servoY.angle = 80
+        sleep(1)
+        servoY.angle = 100
+        sleep(1)
+        servoY.angle = 80
+        sleep(1)
+        
         
         
         # Relay
@@ -212,81 +230,66 @@ class Turret(object):
         t_fire = threading.Thread()
 
         # # # move x
-        if (target_steps_x) == 25:
-            self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 30,))
-        if (target_steps_x) == 24:
-            self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 35,))
-        if (target_steps_x) == 23:
-            self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 40,))
-        if (target_steps_x) == 22:
-            self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 45,))
-        if (target_steps_x) == 21:
-            self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 50,))
-        if (target_steps_x) == 20:
-            self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 55,))
+        
         if (target_steps_x) == 19:
             self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 60,))
-        if (target_steps_x) == 18:
+            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 45,))
+        elif (target_steps_x) == 18:
             self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 65,))
+            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 50,))
         elif (target_steps_x) == 17:
             self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 70,))
+            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 55,))
         elif (target_steps_x) == 16:
             self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 75,))
+            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 60,))
         elif (target_steps_x) == 15:
             self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 80,))
+            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 65,))
         elif (target_steps_x) == 14:
             self.current_x_steps = target_steps_x
+            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 70,))
+        elif (target_steps_x) == 13:
+            self.current_x_steps = target_steps_x
+            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 75,))
+        elif (target_steps_x) == 12:
+            self.current_x_steps = target_steps_x
+            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 80,))
+        elif (target_steps_x) == 11:
+            self.current_x_steps = target_steps_x
             t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 85,))
-        if (target_steps_x) == 13:
+        elif (target_steps_x) == 10:
             self.current_x_steps = target_steps_x
             t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 90,))
-        if (target_steps_x) == 12:
+        elif (target_steps_x) == 9:
             self.current_x_steps = target_steps_x
             t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 95,))
-        if (target_steps_x) == 11:
+        elif (target_steps_x) == 8:
             self.current_x_steps = target_steps_x
             t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 100,))
-        if (target_steps_x) == 10:
+        elif (target_steps_x) == 7:
             self.current_x_steps = target_steps_x
             t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 105,))
-        if (target_steps_x) == 9:
+        elif (target_steps_x) == 6:
             self.current_x_steps = target_steps_x
             t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 110,))
-        if (target_steps_x) == 8:
+        elif (target_steps_x) == 5:
             self.current_x_steps = target_steps_x
             t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 115,))
-        if (target_steps_x) == 7:
-            self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 120,))
-        if (target_steps_x) == 6:
-            self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 125,))
-        if (target_steps_x) == 5:
-            self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 130,))
         elif (target_steps_x) == 4:
             self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 135,))
+            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 120,))
         elif (target_steps_x) == 3:
             self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 140,))
+            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 125,))
         elif (target_steps_x) == 2:
             self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 145,))
+            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 130,))
         elif (target_steps_x) == 1:
             self.current_x_steps = target_steps_x
-            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 150,))
+            t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 135,))
+        
+        
         # # move y
         # if (target_steps_y - self.current_y_steps) > 0:
         #     self.current_y_steps += 1
@@ -343,6 +346,8 @@ if __name__ == "__main__":
     t = Turret(friendly_mode=False)
     #t.calibrate()
     #if raw_input("Live video? (y, n)\n").lower() == "y":
+    
+    #Descomentar
     if input("Live video? (y, n)\n").lower() == "y":
         t.motion_detection(show_video=True)
     else:
