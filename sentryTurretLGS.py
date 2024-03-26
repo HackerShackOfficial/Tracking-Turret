@@ -18,14 +18,14 @@ MOTOR_X_REVERSED = False
 MOTOR_Y_REVERSED = False
 
 MAX_STEPS_X = 19 #importante, debe coincidir con los if de los angulos
-MAX_STEPS_Y = 4
+MAX_STEPS_Y = 3
 
 RELAY_PIN = 23  # Adjusted for Blinka
 
 #######################
 # Setup for Adafruit Blinka
-servoX =gpiozero.AngularServo(18,initial_angle=0, min_angle=0, max_angle=180, min_pulse_width=0.0005, max_pulse_width=0.0025)
-servoY =gpiozero.AngularServo(24,initial_angle=80, min_angle=0, max_angle=180, min_pulse_width=0.0005, max_pulse_width=0.0025)
+servoX =gpiozero.AngularServo(18,initial_angle=90, min_angle=0, max_angle=180, min_pulse_width=0.0005, max_pulse_width=0.0025)
+servoY =gpiozero.AngularServo(24,initial_angle=95, min_angle=0, max_angle=180, min_pulse_width=0.0005, max_pulse_width=0.0025)
 
 relay = gpiozero.OutputDevice(RELAY_PIN, active_high=False, initial_value=False)
 #relay = digitalio.DigitalInOut(RELAY_PIN)
@@ -184,14 +184,12 @@ class Turret(object):
         #Usar esto angulos para el arranque del servoY
         self.current_y_steps = 0
         self.servoY = servoY                
-        servoY.angle = 60
-        sleep(1)
-        servoY.angle = 80
-        sleep(1)
-        servoY.angle = 100
-        sleep(1)
-        servoY.angle = 80
-        sleep(1)
+        servoY.angle = 85
+        sleep(2)
+        servoY.angle = 90
+        sleep(2)
+        servoY.angle = 95
+        #sleep(2)
         
         
         
@@ -219,14 +217,15 @@ class Turret(object):
         
         # find height
         target_steps_x = round((MAX_STEPS_X * ((x + (w / 2)) / v_w)),0)
-        target_steps_y = round((2*MAX_STEPS_Y*(y+h/2) / v_h) - MAX_STEPS_Y,0)
+        target_steps_y = round((MAX_STEPS_Y * ((y + (h / 2)) / v_h)),0)
+        #target_steps_y = round((2*MAX_STEPS_Y*(y+h/2) / v_h) - MAX_STEPS_Y,0)
         print("current x: %s" % (str(self.current_x_steps)))
         print("x-step: %s, y-step: %s" % (str(target_steps_x), str(target_steps_y)))
         #print("current x: %s, current y: %s" % (str(self.current_x_steps), str(self.current_y_steps)))
         
 
         t_x = threading.Thread()
-        #t_y = threading.Thread()
+        t_y = threading.Thread()
         t_fire = threading.Thread()
 
         # # # move x
@@ -290,20 +289,19 @@ class Turret(object):
             t_x = threading.Thread(target=Turret.moveTurret,args=(self.servoX, 135,))
         
         
-        # # move y
-        # if (target_steps_y - self.current_y_steps) > 0:
-        #     self.current_y_steps += 1
-        #     if MOTOR_Y_REVERSED:
-        #         t_y = threading.Thread(target=Turret.move_backward, args=(self.sm_y, 2,))
-        #     else:
-        #         t_y = threading.Thread(target=Turret.move_forward, args=(self.sm_y, 2,))
-        # elif (target_steps_y - self.current_y_steps) < 0:
-        #     self.current_y_steps -= 1
-        #     if MOTOR_Y_REVERSED:
-        #         t_y = threading.Thread(target=Turret.move_forward, args=(self.sm_y, 2,))
-        #     else:
-        #         t_y = threading.Thread(target=Turret.move_backward, args=(self.sm_y, 2,))
-        #
+        # # # move y
+        
+        if (target_steps_y) == 1:
+            self.current_y_steps = target_steps_y
+            t_y = threading.Thread(target=Turret.moveTurret,args=(self.servoY, 85,))
+        elif (target_steps_y) == 2:
+            self.current_y_steps = target_steps_y
+            t_y = threading.Thread(target=Turret.moveTurret,args=(self.servoY, 90,))
+        elif (target_steps_y) == 3:
+            self.current_y_steps = target_steps_y
+            t_y = threading.Thread(target=Turret.moveTurret,args=(self.servoY, 95,))
+        
+        
         # # fire if necessary
         if not self.friendly_mode:
             t_fire = threading.Thread(target=Turret.fire)
@@ -311,11 +309,11 @@ class Turret(object):
             #t_fire = threading.Thread(target=Turret.fire)
 
         t_x.start()
-        #t_y.start()
+        t_y.start()
         t_fire.start()
 
         t_x.join()
-        #t_y.join()
+        t_y.join()
         t_fire.join()
 
     
